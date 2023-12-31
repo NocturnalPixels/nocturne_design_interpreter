@@ -281,7 +281,10 @@ class AstPrinter {
   }
 
   void _printVar(VarExpression v) {
+    _write("Var:");
+    _indent++;
     _write(v.identifier.toString());
+    _indent--;
   }
 
   void _write(String s) {
