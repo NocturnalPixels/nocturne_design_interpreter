@@ -275,7 +275,7 @@ class Lexer {
   }
 
   String _advance() {
-    if (_atEnd()) throw LexingException(1, _line, _previous(), "File ended early.");
+    if (_atEnd()) throw LexingException(LexingExceptionType.earlyEof, _line, _previous(), "File ended early.");
     return String.fromCharCode(_content.codeUnitAt(_current++));
   }
 }

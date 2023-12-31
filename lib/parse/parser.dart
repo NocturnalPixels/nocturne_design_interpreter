@@ -34,11 +34,11 @@ class Parser {
 
       case TokenType.constL:
         ret = _declaration(true);
-        _consume(TokenType.semicolon, ParsingException(6, _peek(), "Expected ';' after declaration."));
+        _consume(TokenType.semicolon, ParsingException(ParsingExceptionType.missingSemicolon, _peek(), "Expected ';' after declaration."));
         break;
       case TokenType.let:
         ret = _declaration(false);
-        _consume(TokenType.semicolon, ParsingException(6, _peek(), "Expected ';' after declaration."));
+        _consume(TokenType.semicolon, ParsingException(ParsingExceptionType.missingSemicolon, _peek(), "Expected ';' after declaration."));
         break;
 
       case TokenType.breakL:
@@ -50,16 +50,16 @@ class Parser {
 
       case TokenType.returnL:
         ret = _return();
-        _consume(TokenType.semicolon, ParsingException(6, _peek(), "Expected ';' after return."));
+        _consume(TokenType.semicolon, ParsingException(ParsingExceptionType.missingSemicolon, _peek(), "Expected ';' after return."));
         break;
 
       case TokenType.identifier:
         ret = _identifier();
-        _consume(TokenType.semicolon, ParsingException(6, _peek(), "Expected ';' after ${_previous().lexeme}."));
+        _consume(TokenType.semicolon, ParsingException(ParsingExceptionType.missingSemicolon, _peek(), "Expected ';' after ${_previous().lexeme}."));
         break;
 
       default:
-        throw ParsingException(1, _previous(), "Unknown Statement");
+        throw ParsingException(ParsingExceptionType.undefinedStatement, _previous(), "Unknown Statement");
     }
 
     return ret;
@@ -82,7 +82,7 @@ class Parser {
         } while (_peek().tokenType == TokenType.comma);
       }
 
-      _consume(TokenType.rParen, ParsingException(10, _peek(), "Expected ')' after call parameters."));
+      _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after call parameters."));
 
       return CallStatement(name, parameters);
     }
@@ -97,7 +97,7 @@ class Parser {
       return AssignStatement(name, BinaryExpression(VarExpression(op), VarExpression(name), LiteralExpression(1)));
     }
 
-    throw ParsingException(7, _previous(), "Floating identifier.");
+    throw ParsingException(ParsingExceptionType.floatingIdentifier, _previous(), "Floating identifier.");
   }
 
   AssignStatement _assign() {
@@ -132,12 +132,12 @@ class Parser {
     if (_peek().tokenType == TokenType.colon) {
       _advance();
 
-      type = _consume(TokenType.identifier, ParsingException(2, _peek(), "Expected type after ':' in declaration '${name.lexeme}'"));
+      type = _consume(TokenType.identifier, ParsingException(ParsingExceptionType.missingType, _peek(), "Expected type after ':' in declaration '${name.lexeme}'"));
 
       if (_peek().tokenType == TokenType.lBracket) {
         _advance();
 
-        _consume(TokenType.rBracket, ParsingException(11, _peek(), "Expected ']' to finish array type declaration."));
+        _consume(TokenType.rBracket, ParsingException(ParsingExceptionType.missingClosingBracket, _peek(), "Expected ']' to finish array type declaration."));
       }
     }
 
@@ -151,14 +151,14 @@ class Parser {
   }
 
   ForStatement _for() {
-    _consume(TokenType.lParen, ParsingException(4, _peek(), "Expected '(' after 'for'."));
+    _consume(TokenType.lParen, ParsingException(ParsingExceptionType.missingOpeningParentheses, _peek(), "Expected '(' after 'for'."));
 
     DeclarationStatement initializer = _declaration(false);
     Expression condition = _parseExpression();
-    _consume(TokenType.semicolon, ParsingException(8, _peek(), "Expected ';' after for condition."));
-    _consume(TokenType.identifier, ParsingException(12, _peek(), "Expected identifier to start accumulator."));
+    _consume(TokenType.semicolon, ParsingException(ParsingExceptionType.missingSemicolon, _peek(), "Expected ';' after for condition."));
+    _consume(TokenType.identifier, ParsingException(ParsingExceptionType.expectedIdentifier, _peek(), "Expected identifier to start accumulator."));
     AssignStatement accumulator = _assign();
-    _consume(TokenType.rParen, ParsingException(5, _peek(), "Expected ')' after for accumulator."));
+    _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after for accumulator."));
 
     Statement action = _parseStatement();
 
@@ -168,7 +168,7 @@ class Parser {
   FunctionStatement _function() {
     Token name = _advance();
 
-    _consume(TokenType.lParen, ParsingException(3, _peek(), "Expected '(' after function identifier."));
+    _consume(TokenType.lParen, ParsingException(ParsingExceptionType.missingOpeningParentheses, _peek(), "Expected '(' after function identifier."));
 
     List<DeclarationStatement> parameters = [];
 
@@ -179,25 +179,25 @@ class Parser {
       } while (_peek().tokenType == TokenType.comma);
     }
 
-    _consume(TokenType.rParen, ParsingException(10, _peek(), "Expected ')' after function parameters."));
+    _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after function parameters."));
 
     Token? returnType;
 
     if (_peek().tokenType == TokenType.colon) {
       _advance();
 
-      returnType = _consume(TokenType.identifier, ParsingException(2, _peek(), "Expected type after ':' in function declaration '${name.lexeme}'"));
+      returnType = _consume(TokenType.identifier, ParsingException(ParsingExceptionType.missingType, _peek(), "Expected type after ':' in function declaration '${name.lexeme}'"));
     }
 
     return FunctionStatement(name, returnType, parameters, _parseStatement());
   }
 
   IfStatement _if() {
-    _consume(TokenType.lParen, ParsingException(4, _peek(), "Expected '(' after 'if'."));
+    _consume(TokenType.lParen, ParsingException(ParsingExceptionType.missingOpeningParentheses, _peek(), "Expected '(' after 'if'."));
 
     Expression condition = _parseExpression();
 
-    _consume(TokenType.rParen, ParsingException(5, _peek(), "Expected ')' after if condition."));
+    _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after if condition."));
 
     Statement ifBranch = _parseStatement();
     Statement? elseBranch;
@@ -214,11 +214,11 @@ class Parser {
   }
 
   WhileStatement _while() {
-    _consume(TokenType.lParen, ParsingException(4, _peek(), "Expected '(' after 'while'."));
+    _consume(TokenType.lParen, ParsingException(ParsingExceptionType.missingOpeningParentheses, _peek(), "Expected '(' after 'while'."));
 
     Expression condition = _parseExpression();
 
-    _consume(TokenType.rParen, ParsingException(5, _peek(), "Expected ')' after while condition."));
+    _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after while condition."));
 
     Statement action = _parseStatement();
 
@@ -314,11 +314,11 @@ class Parser {
 
     if (_peek().tokenType == TokenType.lParen) {
       Expression e = _parseExpression();
-      _consume(TokenType.rParen, ParsingException(9, _peek(), "Expected ')' after grouping."));
+      _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after grouping."));
       return GroupingExpression(e);
     }
 
-    throw ParsingException(10, _peek(), "Uncaught token.");
+    throw ParsingException(ParsingExceptionType.uncaughtToken, _peek(), "Uncaught token.");
   }
 
   Expression _identifierExpression() {
@@ -341,7 +341,7 @@ class Parser {
         } while (_peek().tokenType == TokenType.comma);
       }
 
-      _consume(TokenType.rParen, ParsingException(10, _peek(), "Expected ')' after call parameters."));
+      _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after call parameters."));
 
       return CallExpression(name, params);
     }

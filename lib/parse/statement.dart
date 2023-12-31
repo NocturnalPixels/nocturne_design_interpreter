@@ -48,9 +48,9 @@ class ForStatement extends Statement {
   final DeclarationStatement initializer;
   final Expression condition;
   final AssignStatement increment;
-  final Statement action;
+  final Statement body;
 
-  const ForStatement(this.initializer, this.condition, this.increment, this.action);
+  const ForStatement(this.initializer, this.condition, this.increment, this.body);
 }
 
 class FunctionStatement extends Statement {
