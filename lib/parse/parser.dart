@@ -94,7 +94,7 @@ class Parser {
     }
     else if (_match([TokenType.plusplus, TokenType.minusminus])) {
       Token op = _previous();
-      return AssignStatement(name, BinaryExpression(VarExpression(op), VarExpression(name), LiteralExpression(1)));
+      return AssignStatement(name, BinaryExpression(VarExpression(op), VarExpression(name), LiteralExpression(op, 1)));
     }
 
     throw ParsingException(ParsingExceptionType.floatingIdentifier, _previous(), "Floating identifier.");
@@ -210,7 +210,7 @@ class Parser {
   }
 
   ReturnStatement _return() {
-    return ReturnStatement(_parseExpression());
+    return ReturnStatement(_previous(), _parseExpression());
   }
 
   WhileStatement _while() {
@@ -300,12 +300,21 @@ class Parser {
   }
 
   Expression _literal() {
-    if (_peek().tokenType == TokenType.falseL) return LiteralExpression(false);
-    if (_peek().tokenType == TokenType.trueL) return LiteralExpression(true);
-    if (_peek().tokenType == TokenType.nullL) return LiteralExpression(null);
+    if (_peek().tokenType == TokenType.falseL) {
+      _advance();
+      return LiteralExpression(_peek(), false);
+    }
+    if (_peek().tokenType == TokenType.trueL) {
+      _advance();
+      return LiteralExpression(_peek(), true);
+    }
+    if (_peek().tokenType == TokenType.nullL) {
+      _advance();
+      return LiteralExpression(_peek(), null);
+    }
 
     if (_match([TokenType.integer, TokenType.real, TokenType.string])) {
-      return LiteralExpression(_previous().tokenValue);
+      return LiteralExpression(_previous(), _previous().tokenValue);
     }
 
     if (_peek().tokenType == TokenType.identifier) {

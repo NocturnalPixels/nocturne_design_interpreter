@@ -31,9 +31,10 @@ class GroupingExpression extends Expression {
 }
 
 class LiteralExpression extends Expression {
+  final Token blame;
   final dynamic value;
 
-  const LiteralExpression(this.value);
+  const LiteralExpression(this.blame, this.value);
 }
 
 class UnaryExpression extends Expression {

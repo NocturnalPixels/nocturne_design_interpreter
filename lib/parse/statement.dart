@@ -71,9 +71,10 @@ class IfStatement extends Statement {
 }
 
 class ReturnStatement extends Statement {
+  final Token blame;
   final Expression? value;
 
-  const ReturnStatement(this.value);
+  const ReturnStatement(this.blame, this.value);
 }
 
 class WhileStatement extends Statement {
