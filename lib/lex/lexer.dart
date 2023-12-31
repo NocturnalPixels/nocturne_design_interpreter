@@ -8,7 +8,13 @@ class Lexer {
     "const": TokenType.constL,
     "true": TokenType.trueL,
     "false": TokenType.falseL,
-    "null": TokenType.nullL
+    "null": TokenType.nullL,
+    "if": TokenType.ifL,
+    "else": TokenType.elseL,
+    "while": TokenType.whileL,
+    "for": TokenType.forL,
+    "break": TokenType.breakL,
+    "return": TokenType.returnL
   };
 
   final String _content;
@@ -69,27 +75,129 @@ class Lexer {
           tokens.add(_lexString());
           break;
 
-        default:
-          if (_previous() == "/") {
-            if (_peek() == "/") {
-              while (_peek() != "\n" && !_atEnd()) {
-                _advance();
-              }
-              break;
-            }
-            else if (_previous() == "*") {
-              _advance();
-              while (_advance() != "*" && _peek() != "/") {
-                if (_peek() == '\n') {
-                  _line++;
-                }
-              }
-
-              _advance();
-              break;
-            }
+        case '+':
+          if (_peek() == "=") {
+            _advance();
+            tokens.add(Token(TokenType.plusequal, _line, "+=", null));
+            break;
+          }
+          else if (_peek() == '+') {
+            _advance();
+            tokens.add(Token(TokenType.plusplus, _line, "++", null));
+            break;
           }
 
+          tokens.add(Token(TokenType.plus, _line, "+", null));
+          break;
+        case '-':
+          if (_peek() == "=") {
+            _advance();
+            tokens.add(Token(TokenType.minusequal, _line, "-=", null));
+            break;
+          }
+          else if (_peek() == '-') {
+            _advance();
+            tokens.add(Token(TokenType.minusminus, _line, "--", null));
+            break;
+          }
+
+          tokens.add(Token(TokenType.minus, _line, "-", null));
+          break;
+        case '*':
+          if (_peek() == "=") {
+            _advance();
+            tokens.add(Token(TokenType.starequal, _line, "*=", null));
+            break;
+          }
+
+          tokens.add(Token(TokenType.star, _line, "*", null));
+          break;
+        case '/':
+          if (_peek() == "/") {
+            while (_peek() != "\n" && !_atEnd()) {
+              _advance();
+            }
+            break;
+          }
+          else if (_peek() == "*") {
+            _advance();
+            while (_advance() != "*" && _peek() != "/") {
+              if (_peek() == '\n') {
+                _line++;
+              }
+            }
+
+            _advance();
+            break;
+          }
+          else if (_peek() == "=") {
+            _advance();
+            tokens.add(Token(TokenType.slashequal, _line, "/=", null));
+            break;
+          }
+
+          tokens.add(Token(TokenType.slash, _line, "/", null));
+          break;
+
+        case '=':
+          if (_peek() == "=") {
+            _advance();
+            tokens.add(Token(TokenType.equalequal, _line, "==", null));
+            break;
+          }
+
+          tokens.add(Token(TokenType.equal, _line, "=", null));
+          break;
+        case '!':
+          if (_peek() == "=") {
+            _advance();
+            tokens.add(Token(TokenType.bangequal, _line, "!=", null));
+            break;
+          }
+
+          tokens.add(Token(TokenType.bang, _line, "!", null));
+          break;
+
+        case '<':
+          if (_peek() == "=") {
+            _advance();
+            tokens.add(Token(TokenType.lessequal, _line, "<=", null));
+            break;
+          }
+
+          tokens.add(Token(TokenType.less, _line, "<", null));
+          break;
+
+        case '>':
+          if (_peek() == "=") {
+            _advance();
+            tokens.add(Token(TokenType.greaterequal, _line, ">=", null));
+            break;
+          }
+
+          tokens.add(Token(TokenType.greater, _line, ">", null));
+          break;
+        
+        case '&':
+          if (_peek() == "&") {
+            _advance();
+            tokens.add(Token(TokenType.ampamp, _line, "&&", null));
+            break;
+          }
+
+          tokens.add(Token(TokenType.ampersand, _line, "&", null));
+          break;
+        case '|':
+          if (_peek() == "|") {
+            _advance();
+            tokens.add(Token(TokenType.pipepipe, _line, "||", null));
+            break;
+          }
+
+          tokens.add(Token(TokenType.pipe, _line, "|", null));
+          break;
+
+        default:
           if (_isNumeric(_previous())) {
             tokens.add(_lexNumber());
             break;
@@ -138,7 +246,7 @@ class Lexer {
   Token _lexIdentifier() {
     String value = _previous();
 
-    while (_peek() != " " && _peek() != "\r" && _peek() != "\t") {
+    while (_isIdentifierAllowed(_peek())) {
       value += _advance();
     }
 
@@ -148,6 +256,11 @@ class Lexer {
   }
 
   bool _isNumeric(String s) => s.codeUnitAt(0) >= 48 && s.codeUnitAt(0) <= 57;
+  bool _isIdentifierAllowed(String s) => 
+    _isNumeric(s) ||
+    s.codeUnitAt(0) == 60 || s.codeUnitAt(0) == 62 || s.codeUnitAt(0) == 92 || s.codeUnitAt(0) == 94 || s.codeUnitAt(0) == 95 || s.codeUnitAt(0) == 124 || s.codeUnitAt(0) == 126 ||
+    (s.codeUnitAt(0) >= 65 && s.codeUnitAt(0) <= 90) ||
+    (s.codeUnitAt(0) >= 97 && s.codeUnitAt(0) <= 122);
 
   bool _atEnd() {
     return _current >= _content.length;

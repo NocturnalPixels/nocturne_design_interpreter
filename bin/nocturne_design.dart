@@ -1,8 +1,10 @@
 import "dart:io";
 
 import 'package:nocturne_design/console_util.dart';
+import 'package:nocturne_design/debug/ast_printer.dart';
 import 'package:nocturne_design/lex/lexer.dart';
-import 'package:nocturne_design/lex/lexing_exception.dart';
+import 'package:nocturne_design/lex/token.dart';
+import 'package:nocturne_design/parse/parser.dart';
 
 void main(List<String> arguments) {
   if (arguments.isEmpty) {
@@ -18,10 +20,8 @@ void main(List<String> arguments) {
   }
 
   Lexer lexer = Lexer(file.readAsStringSync());
-  try {
-    print(lexer.lex());
-  }
-  catch (e) {
-    print(e.toString());
-  }
+  List<Token> tokens = lexer.lex();
+
+  Parser parser = Parser(tokens);
+  parser.parse().forEach((element) { AstPrinter(element).print(); });
 }

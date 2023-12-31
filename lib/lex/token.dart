@@ -3,11 +3,23 @@ enum TokenType {
 
   colon, semicolon, dot, comma,
 
+  plus, plusplus, minus, minusminus, star, slash,
+
+  plusequal, minusequal, starequal, slashequal,
+
+  equal, bang, ampersand, pipe,
+
+  equalequal, bangequal, less, lessequal, greater, greaterequal,
+
+  ampamp, pipepipe,
+
   integer, real, string,
 
-  constL, function, let,
+  constL, function, let, whileL, forL, breakL, returnL,
 
   trueL, falseL, nullL,
+
+  ifL, elseL,
 
   identifier,
 
@@ -15,12 +27,12 @@ enum TokenType {
 }
 
 class Token {
-  TokenType tokenType;
-  int line;
-  String lexeme;
-  dynamic tokenValue;
+  final TokenType tokenType;
+  final int line;
+  final String lexeme;
+  final dynamic tokenValue;
 
-  Token(this.tokenType, this.line, this.lexeme, this.tokenValue);
+  const Token(this.tokenType, this.line, this.lexeme, this.tokenValue);
 
   @override
   String toString() => "$tokenType | $lexeme | $tokenValue | $line";
