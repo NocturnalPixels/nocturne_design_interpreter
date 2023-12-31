@@ -1,2 +1,4 @@
-A sample command-line application with an entrypoint in `bin/`, library code
-in `lib/`, and example unit test in `test/`.
+# Nocturne Design Parser
+
+## Running the example
+Run the `dart run nocturne_design "example.ns"` command.
