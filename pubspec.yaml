@@ -1,0 +1,13 @@
+name: nocturne_design
+description: The test design interpreter for the nocturne language.
+version: 1.0.0
+repository: https://github.com/NocturnalPixels/nocturne_design
+
+environment:
+  sdk: ^3.2.0
+
+dependencies:
+
+dev_dependencies:
+  lints: ^2.1.0
+  test: ^1.24.0
