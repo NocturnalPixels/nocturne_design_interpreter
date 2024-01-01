@@ -293,7 +293,7 @@ class AstPrinter {
 
   void _write(String s) {
     for (int i = 0; i < _indent; i++) {
-      stdout.write("|  ");
+      stdout.write("█  ");
     }
 
     stdout.write("$s\n");
