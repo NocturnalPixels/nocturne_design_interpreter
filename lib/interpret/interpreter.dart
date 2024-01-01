@@ -1,9 +1,11 @@
 import 'package:nocturne_design/interpret/environment.dart';
 import 'package:nocturne_design/interpret/interpret_exception.dart';
 import 'package:nocturne_design/interpret/native_methods.dart';
+import 'package:nocturne_design/interpret/ninstance.dart';
 import 'package:nocturne_design/interpret/resolving/resolver.dart';
 import 'package:nocturne_design/interpret/symbols/symbol.dart';
 import 'package:nocturne_design/interpret/symbols/symbol_collector.dart';
+import 'package:nocturne_design/interpret/typing/type_checker.dart';
 import 'package:nocturne_design/interpret/typing/type_converter.dart';
 import 'package:nocturne_design/lex/token.dart';
 import 'package:nocturne_design/parse/expression.dart';
@@ -34,9 +36,7 @@ class Interpreter {
   final List<Statement> _statements;
   late Environment _current;
 
-  int _unnamedEnvCount;
-
-  Interpreter(this._statements): _unnamedEnvCount = 0;
+  Interpreter(this._statements);
 
   void interpret() {
     SymbolCollector collector = SymbolCollector(_statements);
@@ -65,11 +65,14 @@ class Interpreter {
 
   void _interpretStatement(Statement s) {
     switch (s) {
+      case AccessorStatement acc:
+        _accessor(acc);
+        break;
       case AssignStatement assign:
         _assign(assign);
         break;
       case BlockStatement block:
-        BlockSymbol s = _current.findF((_unnamedEnvCount++).toString()) as BlockSymbol;
+        BlockSymbol s = _current.findF(block.uid.toString()) as BlockSymbol;
         _current = s.env;
         for (Statement element in block.body) {_interpretStatement(element);}
         _current = _current.exit();
@@ -85,6 +88,8 @@ class Interpreter {
       case ForStatement forL:
         _for(forL);
         break;
+      case StructStatement _:
+      case ModStatement _:
       case FunctionStatement _:
         break;
       case IfStatement ifL:
@@ -106,6 +111,20 @@ class Interpreter {
     }
   }
 
+  void _accessor(AccessorStatement a) {
+    Environment returnTo = _current;
+
+    dynamic left = _expression(a.left);
+
+    if (left is NInstance) {
+      _current = left.env;
+
+      _expression(a.right);
+    }
+
+    _current = returnTo;
+  }
+
   void _assign(AssignStatement a) {
     _current.define(_current.find(a.left), _expression(a.right));
   }
@@ -113,6 +132,7 @@ class Interpreter {
   void _call(CallStatement c) {
     NSymbol s = _current.find(c.identifier);
     if (s is FunctionSymbol) {
+      Environment src = _current;
       _current = s.env;
       for (int i = 0; i < s.params.length; i++) {
         _current.define(s.params[i], _expression(c.arguments[i]));
@@ -122,9 +142,9 @@ class Interpreter {
         _interpretStatement(s.body);
       } on ReturnException {
         return;
+      } finally {
+        _current = src;
       }
-
-      _current = _current.exit();
     }
     else if (s is NativeFunctionSymbol) {
       List<dynamic> params = [];
@@ -142,11 +162,10 @@ class Interpreter {
   }
 
   void _for(ForStatement f) {
-    EnvironmentSymbol e = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
+    EnvironmentSymbol e = _current.findF(f.uid.toString()) as EnvironmentSymbol;
     _current = e.env;
     _decl(f.initializer);
     while (_expression(f.condition)) {
-      _unnamedEnvCount = e.key + 1;
       _interpretStatement(f.body);
       _interpretStatement(f.increment);
     }
@@ -154,37 +173,27 @@ class Interpreter {
   }
 
   void _if(IfStatement i) {
-    EnvironmentSymbol ifBranch = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
-    int elseIndex = _unnamedEnvCount++;
+    EnvironmentSymbol ifBranch = _current.findF((i.uid - 1).toString()) as EnvironmentSymbol;
     EnvironmentSymbol? elseBranch;
     if (i.elseBranch != null) {
-      elseBranch = _current.findF(elseIndex.toString()) as EnvironmentSymbol;
+      elseBranch = _current.findF(i.uid.toString()) as EnvironmentSymbol;
     }
 
     if (_expression(i.condition) == true) {
       _current = ifBranch.env;
       _interpretStatement(ifBranch.body);
       _current = _current.exit();
-    }
-    else if (i.ifBranch is BlockStatement) {
-      _unnamedEnvCount++;
-    }
-
-    if (_expression(i.condition) != true && elseBranch != null) {
+    } else if (elseBranch != null) {
       _current = elseBranch.env;
       _interpretStatement(elseBranch.body);
       _current = _current.exit();
     }
-    else if (i.elseBranch is BlockStatement) {
-      _unnamedEnvCount++;
-    }
   }
 
   void _while(WhileStatement w) {
-    EnvironmentSymbol e = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
+    EnvironmentSymbol e = _current.findF(w.uid.toString()) as EnvironmentSymbol;
     _current = e.env;
     while (_expression(w.condition)) {
-      _unnamedEnvCount = e.key + 1;
       _interpretStatement(w.body);
     }
     _current = _current.exit();
@@ -192,6 +201,8 @@ class Interpreter {
 
   dynamic _expression(Expression e) {
     switch (e) {
+      case AccessorExpression acc:
+        return _accessorExpression(acc);
       case AssignExpression assign:
         return _assignExpression(assign);
       case BinaryExpression binary:
@@ -209,6 +220,20 @@ class Interpreter {
       default:
         throw InterpretError("Non-implemented expression ${e.runtimeType}.");
     }
+  }
+
+  dynamic _accessorExpression(AccessorExpression a) {
+    Environment returnTo = _current;
+
+    dynamic left = _expression(a.left);
+
+    if (left is NInstance) {
+      _current = left.env;
+
+      return _expression(a.right);
+    }
+
+    _current = returnTo;
   }
 
   dynamic _assignExpression(AssignExpression a) {
@@ -247,6 +272,7 @@ class Interpreter {
   dynamic _callExpression(CallExpression c) {
     NSymbol s = _current.find(c.identifier);
     if (s is FunctionSymbol) {
+      Environment src = _current;
       _current = s.env;
       for (int i = 0; i < s.params.length; i++) {
         _current.define(s.params[i], _expression(c.arguments[i]));
@@ -256,9 +282,9 @@ class Interpreter {
         _interpretStatement(s.body);
       } on ReturnException catch (ex) {
         return ex.value;
+      } finally {
+        _current = src;
       }
-
-      _current = _current.exit();
     }
     else if (s is NativeFunctionSymbol) {
       List<dynamic> params = [];
@@ -266,6 +292,13 @@ class Interpreter {
         params.add(_expression(arg));
       }
       return s.impl.call(params);
+    }
+    else if (s is ConstructorSymbol) {
+      Map<VariableSymbol, dynamic> params = {};
+      for (int i = 0; i < s.params.length; i++) {
+        params[s.params[i]] = _expression(c.arguments[i]);
+      }
+      return NInstance(s.type, evaluateType(s), params, Environment(_current));
     }
   }
 

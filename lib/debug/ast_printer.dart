@@ -42,6 +42,12 @@ class AstPrinter {
       case IfStatement ifL:
         _printIf(ifL);
         break;
+      case ModStatement mod:
+        _printMod(mod);
+        break;
+      case StructStatement str:
+        _printStruct(str);
+        break;
       case ReturnStatement ret:
         _printReturn(ret);
         break;
@@ -158,6 +164,34 @@ class AstPrinter {
     else {
       _write("None");
     }
+    _indent -= 2;
+  }
+
+  void _printMod(ModStatement m) {
+    _write("Mod:");
+    _indent++;
+
+    _write("Name:");
+    _indent++;
+    _write(m.name.toString());
+    _indent--;
+    _write("Methods:");
+    _indent++;
+    for (FunctionStatement element in m.methods) { _printFunction(element); }
+    _indent -= 2;
+  }
+
+  void _printStruct(StructStatement s) {
+    _write("Struct:");
+    _indent++;
+
+    _write("Name:");
+    _indent++;
+    _write(s.name.toString());
+    _indent--;
+    _write("Properties:");
+    _indent++;
+    for (DeclarationStatement element in s.properties) {_printDeclaration(element);}
     _indent -= 2;
   }
 

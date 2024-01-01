@@ -15,7 +15,7 @@ enum TokenType {
 
   integer, real, string,
 
-  constL, function, let, whileL, forL, breakL, returnL,
+  constL, function, let, whileL, forL, breakL, returnL, struct, mod,
 
   trueL, falseL, nullL,
 

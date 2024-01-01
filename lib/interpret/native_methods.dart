@@ -75,7 +75,7 @@ Map<String, NativeFunctionSymbol> _nativeMethods = {
   "%": NativeFunctionSymbol("%", getTypeF("real"), [
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
-  ], modulo)
+  ], modulo),
 };
 
 bool existsNativeMethod(String name) => _nativeMethods.containsKey(name);

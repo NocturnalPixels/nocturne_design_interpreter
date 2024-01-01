@@ -7,7 +7,9 @@ class Parser {
   final List<Token> _tokens;
   int _current;
 
-  Parser(this._tokens): _current = 0;
+  Expression? _last;
+
+  Parser(this._tokens): _current = 0, _last = null;
 
   List<Statement> parse() {
     List<Statement> statements = [];
@@ -42,7 +44,7 @@ class Parser {
         break;
 
       case TokenType.breakL:
-        return BreakStatement();
+        return BreakStatement(_current);
       case TokenType.whileL:
         return _while();
       case TokenType.forL:
@@ -56,6 +58,13 @@ class Parser {
       case TokenType.identifier:
         ret = _identifier();
         _consume(TokenType.semicolon, ParsingException(ParsingExceptionType.missingSemicolon, _peek(), "Expected ';' after ${_previous().lexeme}."));
+        break;
+
+      case TokenType.struct:
+        ret = _struct();
+        break;
+      case TokenType.mod:
+        ret = _mod();
         break;
 
       default:
@@ -86,7 +95,7 @@ class Parser {
         break;
 
       case TokenType.breakL:
-        return BreakStatement();
+        return BreakStatement(_current);
       case TokenType.whileL:
         return _while();
       case TokenType.forL:
@@ -98,6 +107,13 @@ class Parser {
 
       case TokenType.identifier:
         ret = _identifier();
+        break;
+
+      case TokenType.struct:
+        ret = _struct();
+        break;
+      case TokenType.mod:
+        ret = _mod();
         break;
 
       default:
@@ -128,7 +144,7 @@ class Parser {
       _current--;
       _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after call parameters."));
 
-      return CallStatement(name, parameters);
+      return CallStatement(name, parameters, _current);
     }
     else if (_match([TokenType.plusequal, TokenType.minusequal, TokenType.starequal, TokenType.slashequal])) {
       Token op = switch (_previous().tokenType) {
@@ -140,7 +156,7 @@ class Parser {
       };
       Expression value = _parseExpression();
 
-      return AssignStatement(name, BinaryExpression(op, VarExpression(name), value));
+      return AssignStatement(name, BinaryExpression(op, VarExpression(name), value), _current);
     }
     else if (_match([TokenType.plusplus, TokenType.minusminus])) {
       Token op = switch (_previous().tokenType) {
@@ -148,7 +164,13 @@ class Parser {
         TokenType.minusminus => Token(TokenType.minus, -1, "-", "-"),
         _ => throw ParsingException(ParsingExceptionType.floatingIdentifier, _previous(), "Floating identifier.")
       };
-      return AssignStatement(name, BinaryExpression(op, VarExpression(name), LiteralExpression(op, 1)));
+      return AssignStatement(name, BinaryExpression(op, VarExpression(name), LiteralExpression(op, 1)), _current);
+    }
+    else if (_match([TokenType.dot])) {
+      if (_last == null) {
+        throw ParsingException(ParsingExceptionType.emptyAccessor, _previous(), "Can't access nothing.");
+      }
+      return AccessorStatement(_last!, _parseExpression(), _current);
     }
 
     throw ParsingException(ParsingExceptionType.floatingIdentifier, _previous(), "Floating identifier.");
@@ -160,7 +182,7 @@ class Parser {
     _advance();
 
     Expression initializer = _parseExpression();
-    return AssignStatement(name, initializer);
+    return AssignStatement(name, initializer, _current);
   }
 
   BlockStatement _block() {
@@ -174,7 +196,7 @@ class Parser {
 
     _advance();
 
-    return BlockStatement(statements, blame);
+    return BlockStatement(statements, blame, _current);
   }
 
   DeclarationStatement _declaration(bool isConstant) {
@@ -204,7 +226,7 @@ class Parser {
       initializer = _parseExpression();
     }
 
-    return DeclarationStatement(name, type, initializer, properties);
+    return DeclarationStatement(name, type, initializer, properties, _current);
   }
 
   ForStatement _for() {
@@ -220,7 +242,7 @@ class Parser {
 
     Statement action = _parseStatement();
 
-    return ForStatement(initializer, condition, accumulator, action, blame);
+    return ForStatement(initializer, condition, accumulator, action, blame, _current);
   }
 
   FunctionStatement _function() {
@@ -235,9 +257,9 @@ class Parser {
         parameters.add(_declaration(true));
         _advance();
       } while (_previous().tokenType == TokenType.comma);
+      _current--;
     }
 
-    _current--;
     _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after function parameters."));
 
     Token? returnType;
@@ -248,7 +270,7 @@ class Parser {
       returnType = _consume(TokenType.identifier, ParsingException(ParsingExceptionType.missingType, _peek(), "Expected type after ':' in function declaration '${name.lexeme}'"));
     }
 
-    return FunctionStatement(name, returnType, parameters, _parseStatement());
+    return FunctionStatement(name, returnType, parameters, _parseStatement(), _current);
   }
 
   IfStatement _if() {
@@ -267,11 +289,55 @@ class Parser {
       elseBranch = _parseStatement();
     }
 
-    return IfStatement(condition, ifBranch, elseBranch, blame);
+    return IfStatement(condition, ifBranch, elseBranch, blame, _current);
+  }
+
+  ModStatement _mod() {
+    Token name = _advance();
+
+    _consume(TokenType.lBrace, ParsingException(ParsingExceptionType.missingOpeningBrace, _peek(), "Expected '{' after 'mod'."));
+
+    List<FunctionStatement> methods = [];
+
+    while (_peek().tokenType != TokenType.rBrace) {
+      _consume(TokenType.function, ParsingException(ParsingExceptionType.invalidMethodDeclaration, _peek(), "Expected 'fn' to declare mod method."));
+      methods.add(_function());
+    }
+
+    _advance();
+
+    return ModStatement(name, methods, _current);
+  }
+
+  StructStatement _struct() {
+    Token name = _advance();
+
+    _consume(TokenType.lBrace, ParsingException(ParsingExceptionType.missingOpeningBrace, _peek(), "Expected '{' after 'struct'."));
+
+    List<DeclarationStatement> declarations = [];
+
+    while (_peek().tokenType != TokenType.rBrace) {
+      Token declType = _advance();
+      if (declType.tokenType == TokenType.let) {
+        declarations.add(_declaration(false));
+      }
+      else if (declType.tokenType == TokenType.constL) {
+        declarations.add(_declaration(true));
+      }
+      else {
+        throw ParsingException(ParsingExceptionType.invalidPropertyDeclaration, declType, "Expected 'let' or 'const' to define property.");
+      }
+
+      _consume(TokenType.semicolon, ParsingException(ParsingExceptionType.missingSemicolon, _peek(), "Expected ';' after property declaration."));
+    }
+
+    _advance();
+
+    return StructStatement(name, declarations, _current);
   }
 
   ReturnStatement _return() {
-    return ReturnStatement(_previous(), _parseExpression());
+    return ReturnStatement(_previous(), _parseExpression(), _current);
   }
 
   WhileStatement _while() {
@@ -285,11 +351,12 @@ class Parser {
 
     Statement action = _parseStatement();
 
-    return WhileStatement(condition, action, blame);
+    return WhileStatement(condition, action, blame, _current);
   }
 
   Expression _parseExpression() {
-    return _booleanEquality();
+    _last = _booleanEquality();
+    return _last!;
   }
 
   Expression _booleanEquality() {
@@ -353,12 +420,23 @@ class Parser {
   }
 
   Expression _factor() {
-    Expression e = _unary();
+    Expression e = _accessor();
 
     while (_match([TokenType.star, TokenType.slash])) {
       Token op = _previous();
-      Expression right = _unary();
+      Expression right = _accessor();
       e = BinaryExpression(op, e, right);
+    }
+
+    return e;
+  }
+
+  Expression _accessor() {
+    Expression e = _unary();
+
+    while (_match([TokenType.dot])) {
+      Expression right = _unary();
+      e = AccessorExpression(e, right);
     }
 
     return e;

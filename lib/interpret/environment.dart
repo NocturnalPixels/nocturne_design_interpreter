@@ -26,6 +26,7 @@ class Environment {
     }
     _symbols[key] = symbol;
   }
+
   void define(NSymbol symbol, dynamic value) {
     if (_symbols.containsValue(symbol)) {
       _valueTable[symbol] = value;
@@ -61,6 +62,22 @@ class Environment {
     }
 
     throw ResolvingError("Non-existent anonymous.");
+  }
+
+  NSymbol? findOrNull(String key) {
+    if (existsNativeMethod(key)) {
+      return getNativeMethod(key);
+    }
+
+    if (_symbols.containsKey(key)) {
+      return _symbols[key]!;
+    }
+
+    if (_parent != null) {
+      return _parent.findF(key);
+    }
+
+    return null;
   }
 
   dynamic get(NSymbol key) {

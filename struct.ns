@@ -1,0 +1,12 @@
+struct Inner {
+    const a: int;
+}
+
+struct Test {
+    const i: Inner;
+}
+
+fn main(args: string[]): void {
+    let t: Test = Test(Inner(5));
+    print(t.i.a);
+}

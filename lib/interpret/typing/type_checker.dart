@@ -4,8 +4,9 @@ import 'package:nocturne_design/interpret/resolving/resolving_exception.dart';
 import 'package:nocturne_design/interpret/symbols/symbol.dart';
 import 'package:nocturne_design/interpret/typing/type.dart';
 import 'package:nocturne_design/lex/token.dart';
+import 'package:nocturne_design/parse/statement.dart';
 
-const Map<String, NType> _typeDict = {
+Map<String, NType> _typeDict = {
   "dynamic": NType(0, 0, false),
   "string": NType(1, 0, false),
   "int": NType(2, 8, true),
@@ -14,6 +15,30 @@ const Map<String, NType> _typeDict = {
   "void": NType(5, 0, true),
   "null": NType(6, 0, true)
 };
+
+void declareType(Token key, StructStatement s) {
+  if (_typeDict.containsKey(key.tokenValue)) {
+    throw ResolvingException(ResolvingExceptionType.typeOverlap, key, "Duplicate type declaration.");
+  }
+
+  int size = 0;
+  bool fixedSize = true;
+
+  for (DeclarationStatement decl in s.properties) {
+    if (!_fromToken(decl.type).fixedSize) {
+      fixedSize = false;
+      break;
+    }
+
+    size += _fromToken(decl.type).byteSize;
+  }
+
+  _typeDict[key.tokenValue] = NType(_typeDict.length, size, fixedSize);
+}
+
+NType _fromToken(Token? type) {
+  return _typeDict[type?.tokenValue ?? "dynamic"]!;
+}
 
 bool typesMatchT(NType left, NSymbol right) {
   if (evaluateType(right).signature == _typeDict["dynamic"]!.signature) {
@@ -41,6 +66,8 @@ NType evaluateType(NSymbol s) {
       return nVar.type;
     case NativeFunctionSymbol nFunc:
       return nFunc.returnType;
+    case ConstructorSymbol con:
+      return getTypeF(con.type!.lexeme);
     default:
       throw ResolvingException(ResolvingExceptionType.noAssociatedType, s.blame, "No type associated with ${s.blame.lexeme}.");
   }

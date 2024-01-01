@@ -1,7 +1,7 @@
 import "dart:io";
 
 import 'package:nocturne_design/console_util.dart';
-import 'package:nocturne_design/debug/ast_printer.dart';
+//import 'package:nocturne_design/debug/ast_printer.dart';
 import 'package:nocturne_design/interpret/interpreter.dart';
 import 'package:nocturne_design/lex/lexer.dart';
 import 'package:nocturne_design/lex/token.dart';
@@ -27,7 +27,7 @@ void main(List<String> arguments) {
   Parser parser = Parser(tokens);
 
   List<Statement> stmts = parser.parse();
-  for (Statement element in stmts) { AstPrinter(element).print(); }
+  //for (Statement element in stmts) { AstPrinter(element).print(); }
   
   Interpreter interpreter = Interpreter(stmts);
   interpreter.interpret();

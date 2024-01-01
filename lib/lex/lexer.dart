@@ -14,7 +14,9 @@ class Lexer {
     "while": TokenType.whileL,
     "for": TokenType.forL,
     "break": TokenType.breakL,
-    "return": TokenType.returnL
+    "return": TokenType.returnL,
+    "struct": TokenType.struct,
+    "mod": TokenType.mod
   };
 
   final String _content;

@@ -11,7 +11,9 @@ enum ResolvingExceptionType {
   invalidArgumentCount,
   returningOutsideMethod,
   returningInvalidVoid, 
-  alreadyDefinedSymbol
+  alreadyDefinedSymbol,
+  typeOverlap, 
+  misplacedConstructor
 }
 
 class ResolvingException implements Exception {

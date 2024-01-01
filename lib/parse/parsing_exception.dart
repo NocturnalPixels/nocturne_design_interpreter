@@ -10,8 +10,11 @@ enum ParsingExceptionType {
   floatingIdentifier,
   missingType,
   missingOpeningParentheses,
+  missingOpeningBrace,
   expectedIdentifier,
-  uncaughtToken
+  uncaughtToken,
+  invalidPropertyDeclaration,
+  invalidMethodDeclaration, emptyAccessor
 }
 
 class ParsingException implements Exception {

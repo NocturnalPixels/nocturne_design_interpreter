@@ -10,7 +10,7 @@
             "type": "dart",
             "program": "bin/nocturne_design.dart",
             "args": [
-                "example.ns"
+                "struct.ns"
             ]
         }
     ]

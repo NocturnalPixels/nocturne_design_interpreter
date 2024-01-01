@@ -17,9 +17,7 @@ class SymbolCollector {
   final List<Statement> _statements;
   Environment _current;
 
-  int _unnamedEnvCount;
-
-  SymbolCollector(this._statements): _current = Environment(null), _unnamedEnvCount = 0;
+  SymbolCollector(this._statements): _current = Environment(null);
 
   Environment collect() {
     for (Statement s in _statements) {
@@ -39,10 +37,9 @@ class SymbolCollector {
 
       case BlockStatement block:
         Environment env = _current = Environment(_current);
-        int index = _unnamedEnvCount++;
         for (Statement element in block.body) { _statement(element); }
         _current = _current.exit();
-        _current.declare(index.toString(), BlockSymbol(block.blame, index, env, block.body));
+        _current.declare(block.uid.toString(), BlockSymbol(block.blame, block.uid, env, block.body));
         break;
 
       case DeclarationStatement decl:
@@ -57,6 +54,14 @@ class SymbolCollector {
         _function(func);
         break;
 
+      case ModStatement mod:
+        _mod(mod);
+        break;
+
+      case StructStatement str:
+        _struct(str);
+        break;
+
       case IfStatement ifL:
         _if(ifL);
         break;
@@ -65,25 +70,29 @@ class SymbolCollector {
         _while(whileL);
         break;
 
+      case AccessorStatement _:
+        break;
+
       default:
         throw SymbolCollectionError("Missing Statement implementation in symbol collection.");
     }
   }
 
-  void _declaration(DeclarationStatement d) {
-    _current.declare(d.name.tokenValue, VariableSymbol(d.name, d.type, d.properties));
+  VariableSymbol _declaration(DeclarationStatement d) {
+    VariableSymbol v = VariableSymbol(d.name, d.type, d.properties);
+    _current.declare(d.name.tokenValue, v);
+    return v;
   }
 
   void _for(ForStatement f) {
     Environment env = _current = Environment(_current);
-    int index = _unnamedEnvCount++;
     _declaration(f.initializer);
     _statement(f.body);
     _current = _current.exit();
-    _current.declare(index.toString(), EnvironmentSymbol(f.blame, index, env, f.body));
+    _current.declare(f.uid.toString(), EnvironmentSymbol(f.blame, f.uid, env, f.body));
   }
 
-  void _function(FunctionStatement f) {
+  FunctionSymbol _function(FunctionStatement f) {
     Environment fn = _current = Environment(_current);
 
     List<VariableSymbol> params = [];
@@ -96,27 +105,45 @@ class SymbolCollector {
     _statement(f.body);
 
     _current = _current.exit();
-    _current.declare(f.name.tokenValue, FunctionSymbol(f.name, f.returnType, params, fn, f.body));
+    FunctionSymbol sym = FunctionSymbol(f.name, f.returnType, params, fn, f.body);
+    _current.declare(f.name.tokenValue, sym);
+    return sym;
   }
 
   void _if(IfStatement i) {
     Environment env = _current = Environment(_current);
-    int index = _unnamedEnvCount++;
-    int elseIndex = _unnamedEnvCount++;
     _statement(i.ifBranch);
     if (i.elseBranch != null) _statement(i.elseBranch!);
     _current = _current.exit();
-    _current.declare(index.toString(), EnvironmentSymbol(i.blame, index, env, i.ifBranch));
+    _current.declare((i.uid - 1).toString(), EnvironmentSymbol(i.blame, i.uid - 1, env, i.ifBranch));
     if (i.elseBranch != null) {
-      _current.declare(elseIndex.toString(), EnvironmentSymbol(i.blame, elseIndex, env, i.elseBranch!));
+      _current.declare(i.uid.toString(), EnvironmentSymbol(i.blame, i.uid, env, i.elseBranch!));
     }
+  }
+
+  void _mod(ModStatement m) {
+    Environment env = _current = Environment(_current);
+
+    List<FunctionSymbol> methods = [for (FunctionStatement f in m.methods) _function(f)];
+
+    _current = _current.exit();
+    _current.declare(m.name.tokenValue + "§impl", ModSymbol(m.name, m.name, methods, env));
+  }
+
+  void _struct(StructStatement s) {
+    Environment env = _current = Environment(_current);
+
+    List<VariableSymbol> properties = [for (DeclarationStatement d in s.properties) _declaration(d)];
+
+    _current = _current.exit();
+    _current.declare(s.name.tokenValue + "§decl", StructSymbol(s.name, s.name, properties, env));
+    _current.declare(s.name.tokenValue, ConstructorSymbol(s.name, s.name, properties));
   }
 
   void _while(WhileStatement w) {
     Environment env = _current = Environment(_current);
-    int index = _unnamedEnvCount++;
     _statement(w.body);
     _current = _current.exit();
-    _current.declare(index.toString(), EnvironmentSymbol(w.blame, index, env, w.body));
+    _current.declare(w.uid.toString(), EnvironmentSymbol(w.blame, w.uid, env, w.body));
   }
 }

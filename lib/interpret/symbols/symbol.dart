@@ -45,3 +45,26 @@ class BlockSymbol extends NSymbol {
 
   BlockSymbol(super.blame, this.key, this.env, this.body);
 }
+
+class ModSymbol extends NSymbol {
+  final Token name;
+  final List<FunctionSymbol> methods;
+  final Environment env;
+
+  ModSymbol(super.blame, this.name, this.methods, this.env);
+}
+
+class StructSymbol extends NSymbol {
+  final Token name;
+  final List<VariableSymbol> properties;
+  final Environment env;
+
+  StructSymbol(super.blame, this.name, this.properties, this.env);
+}
+
+class ConstructorSymbol extends NSymbol {
+  final Token? type;
+  final List<VariableSymbol> params;
+
+  ConstructorSymbol(super.blame, this.type, this.params);
+}

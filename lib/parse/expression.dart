@@ -50,3 +50,10 @@ class VarExpression extends Expression {
 
   const VarExpression(this.identifier);
 }
+
+class AccessorExpression extends Expression {
+  final Expression left;
+  final Expression right;
+
+  const AccessorExpression(this.left, this.right);
+}

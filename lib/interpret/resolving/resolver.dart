@@ -25,9 +25,7 @@ class Resolver {
 
   FunctionSymbol? _currentFunc;
 
-  int _unnamedEnvCount;
-
-  Resolver(this._statements, this._current): _currentFunc = null, _unnamedEnvCount = 0;
+  Resolver(this._statements, this._current): _currentFunc = null;
 
   void resolve() {
     for (Statement element in _statements) { _statement(element); }
@@ -39,7 +37,7 @@ class Resolver {
         _assign(assign);
         break;
       case BlockStatement block:
-        BlockSymbol s = _current.findF((_unnamedEnvCount++).toString()) as BlockSymbol;
+        BlockSymbol s = _current.findF(block.uid.toString()) as BlockSymbol;
         _current = s.env;
         for (Statement element in block.body) { _statement(element); }
         _current = _current.exit();
@@ -59,11 +57,20 @@ class Resolver {
       case IfStatement ifL:
         _if(ifL);
         break;
+      case ModStatement mod:
+        _mod(mod);
+        break;
+      case StructStatement str:
+        _struct(str);
+        break;
       case ReturnStatement ret:
         _return(ret);
         break;
       case WhileStatement whileL:
         _while(whileL);
+        break;
+      case AccessorStatement acc:
+        _accessor(acc);
         break;
 
       case BreakStatement _:
@@ -71,6 +78,27 @@ class Resolver {
       default:
         throw ResolvingError("Unimplemented statement in resolver ${s.runtimeType}");
     }
+  }
+
+  void _accessor(AccessorStatement a) {
+    NSymbol left = _expression(a.left);
+
+    Environment returnTo = _current;
+
+    if (left is VariableSymbol) {
+      if (left.type != null) {
+        NSymbol t = _current.find(left.type!); 
+
+        if (t is ConstructorSymbol) {
+          StructSymbol s = _current.findF(left.type!.tokenValue + "§decl") as StructSymbol;
+          _current = s.env;
+        }
+      }
+    }
+
+    _expression(a.right);
+
+    _current = returnTo;
   }
 
   void _assign(AssignStatement a) {
@@ -97,6 +125,7 @@ class Resolver {
           throw ResolvingException(ResolvingExceptionType.invalidType, c.identifier, "Type does not match one specified in function signature.");
         }
       }
+
       return;
     }
     else if (s is NativeFunctionSymbol) {
@@ -105,11 +134,15 @@ class Resolver {
       }
 
       for (int i = 0; i < c.arguments.length; i++) {
-        if (!typesMatch(s.params[i], _expression(c.arguments[i]))) {
-          throw ResolvingException(ResolvingExceptionType.invalidType, c.identifier, "Parameter type does not match one specified in function signature.");
+        if (!typesMatch(_expression(c.arguments[i]), s.params[i])) {
+          throw ResolvingException(ResolvingExceptionType.invalidType, c.identifier, "Type does not match one specified in function signature.");
         }
       }
+
       return;
+    }
+    else if (s is ConstructorSymbol) {
+      throw ResolvingException(ResolvingExceptionType.misplacedConstructor, c.identifier, "Cannot invoke constructor as a statement.");
     }
 
     throw ResolvingException(ResolvingExceptionType.callTargetIsNotCallable, c.identifier, "Call target is not function.");
@@ -126,7 +159,7 @@ class Resolver {
   }
 
   void _for(ForStatement f) {
-    EnvironmentSymbol e = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
+    EnvironmentSymbol e = _current.findF(f.uid.toString()) as EnvironmentSymbol;
     _current = e.env;
 
     if (!typesMatchT(getTypeF("bool"), _expression(f.condition))) {
@@ -147,8 +180,7 @@ class Resolver {
   }
 
   void _if(IfStatement i) {
-    EnvironmentSymbol ifBranch = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
-    int elseIndex = _unnamedEnvCount++;
+    EnvironmentSymbol ifBranch = _current.findF((i.uid - 1).toString()) as EnvironmentSymbol;
 
     if (!typesMatchT(getTypeF("bool"), _expression(i.condition))) {
       throw ResolvingException(ResolvingExceptionType.typeMismatch, i.blame, "For condition does not evaluate to boolean.");
@@ -158,11 +190,24 @@ class Resolver {
     _statement(i.ifBranch);
     _current = _current.exit();
     if (i.elseBranch != null) {
-      EnvironmentSymbol elseBranch = _current.findF(elseIndex.toString()) as EnvironmentSymbol;
+      EnvironmentSymbol elseBranch = _current.findF(i.uid.toString()) as EnvironmentSymbol;
       _current = elseBranch.env;
       _statement(i.elseBranch!);
       _current = _current.exit();
     }
+  }
+
+  void _mod(ModStatement m) {
+    _current = (_current.findF(m.name.tokenValue + "§impl") as ModSymbol).env;
+    for (FunctionStatement element in m.methods) {_function(element);}
+    _current = _current.exit();
+  }
+
+  void _struct(StructStatement s) {
+    _current = (_current.findF(s.name.tokenValue + "§decl") as StructSymbol).env;
+    declareType(s.name, s);
+    for (DeclarationStatement decl in s.properties) {_declaration(decl);}
+    _current = _current.exit();
   }
 
   void _return(ReturnStatement r) {
@@ -186,7 +231,7 @@ class Resolver {
   }
 
   void _while(WhileStatement w) {
-    EnvironmentSymbol e = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
+    EnvironmentSymbol e = _current.findF(w.uid.toString()) as EnvironmentSymbol;
     _current = e.env;
 
     if (!typesMatchT(getTypeF("bool"), _expression(w.condition))) {
@@ -214,9 +259,34 @@ class Resolver {
         return _current.find(varL.identifier);
       case UnaryExpression unary:
         return _unary(unary);
+      case AccessorExpression acc:
+        return _accessorExpression(acc);
       default:
         throw ResolvingError("Missing implemented expression in resolver ${e.runtimeType}");
     }
+  }
+
+  NSymbol _accessorExpression(AccessorExpression a) {
+    NSymbol left = _expression(a.left);
+
+    Environment returnTo = _current;
+
+    if (left is VariableSymbol) {
+      if (left.type != null) {
+        NSymbol t = _current.find(left.type!); 
+
+        if (t is ConstructorSymbol) {
+          StructSymbol s = _current.findF(left.type!.tokenValue + "§decl") as StructSymbol;
+          _current = s.env;
+        }
+      }
+    }
+
+    NSymbol right = _expression(a.right);
+
+    _current = returnTo;
+
+    return right;
   }
 
   NSymbol _assignExpression(AssignExpression a) {
@@ -259,21 +329,47 @@ class Resolver {
   NSymbol _callExpression(CallExpression c) {
     NSymbol s = _current.find(c.identifier);
 
-    if (s is! FunctionSymbol) {
-      throw ResolvingException(ResolvingExceptionType.callTargetIsNotCallable, c.identifier, "Call target is not function.");
-    }
-
-    if (c.arguments.length != s.params.length) {
-      throw ResolvingException(ResolvingExceptionType.invalidArgumentCount, c.identifier, "Function argument count does not match.");
-    }
-
-    for (int i = 0; i < c.arguments.length; i++) {
-      if (!typesMatch(_expression(c.arguments[i]), s.params[i])) {
-        throw ResolvingException(ResolvingExceptionType.invalidType, c.identifier, "Type does not match one specified in function signature.");
+    if (s is FunctionSymbol) {
+      if (c.arguments.length != s.params.length) {
+        throw ResolvingException(ResolvingExceptionType.invalidArgumentCount, c.identifier, "Function argument count does not match.");
       }
+
+      for (int i = 0; i < c.arguments.length; i++) {
+        if (!typesMatch(_expression(c.arguments[i]), s.params[i])) {
+          throw ResolvingException(ResolvingExceptionType.invalidType, c.identifier, "Type does not match one specified in function signature.");
+        }
+      }
+
+      return s;
+    }
+    else if (s is NativeFunctionSymbol) {
+      if (c.arguments.length != s.params.length) {
+        throw ResolvingException(ResolvingExceptionType.invalidArgumentCount, c.identifier, "Function argument count does not match.");
+      }
+
+      for (int i = 0; i < c.arguments.length; i++) {
+        if (!typesMatch(_expression(c.arguments[i]), s.params[i])) {
+          throw ResolvingException(ResolvingExceptionType.invalidType, c.identifier, "Type does not match one specified in function signature.");
+        }
+      }
+
+      return s;
+    }
+    else if (s is ConstructorSymbol) {
+      if (c.arguments.length != s.params.length) {
+        throw ResolvingException(ResolvingExceptionType.invalidArgumentCount, c.identifier, "Function argument count does not match.");
+      }
+
+      for (int i = 0; i < c.arguments.length; i++) {
+        if (!typesMatch(_expression(c.arguments[i]), s.params[i])) {
+          throw ResolvingException(ResolvingExceptionType.invalidType, c.identifier, "Type does not match one specified in function signature.");
+        }
+      }
+
+      return s;
     }
 
-    return s;
+    throw ResolvingException(ResolvingExceptionType.callTargetIsNotCallable, c.identifier, "Call target is not function.");
   }
 
   NSymbol _unary(UnaryExpression u) {
