@@ -20,8 +20,9 @@ class AssignStatement extends Statement {
 
 class BlockStatement extends Statement {
   final List<Statement> body;
+  final Token blame;
 
-  const BlockStatement(this.body);
+  const BlockStatement(this.body, this.blame);
 }
 
 class BreakStatement extends Statement {
@@ -49,8 +50,9 @@ class ForStatement extends Statement {
   final Expression condition;
   final AssignStatement increment;
   final Statement body;
+  final Token blame;
 
-  const ForStatement(this.initializer, this.condition, this.increment, this.body);
+  const ForStatement(this.initializer, this.condition, this.increment, this.body, this.blame);
 }
 
 class FunctionStatement extends Statement {
@@ -66,8 +68,9 @@ class IfStatement extends Statement {
   final Expression condition;
   final Statement ifBranch;
   final Statement? elseBranch;
+  final Token blame;
 
-  const IfStatement(this.condition, this.ifBranch, this.elseBranch);
+  const IfStatement(this.condition, this.ifBranch, this.elseBranch, this.blame);
 }
 
 class ReturnStatement extends Statement {
@@ -80,6 +83,7 @@ class ReturnStatement extends Statement {
 class WhileStatement extends Statement {
   final Expression condition;
   final Statement body;
+  final Token blame;
 
-  const WhileStatement(this.condition, this.body);
+  const WhileStatement(this.condition, this.body, this.blame);
 }

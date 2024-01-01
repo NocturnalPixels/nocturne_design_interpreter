@@ -5,9 +5,10 @@ Testing File
 */
 
 fn main(args: string[]): void {
-    print(test(5));
-}
+    let x: real = 0.0;
 
-fn test(x: int): int {
-    return x;
+    while (x < 5.0) {
+        print(x);
+        x++;
+    }
 }

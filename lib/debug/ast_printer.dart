@@ -234,7 +234,7 @@ class AstPrinter {
 
     _write("Operator:");
     _indent++;
-    _printExpression(b.op);
+    _write(b.op.toString());
     _indent--;
     _write("Left:");
     _indent++;

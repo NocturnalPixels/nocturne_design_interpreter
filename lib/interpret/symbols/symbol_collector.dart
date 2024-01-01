@@ -17,7 +17,9 @@ class SymbolCollector {
   final List<Statement> _statements;
   Environment _current;
 
-  SymbolCollector(this._statements): _current = Environment(null);
+  int _unnamedEnvCount;
+
+  SymbolCollector(this._statements): _current = Environment(null), _unnamedEnvCount = 0;
 
   Environment collect() {
     for (Statement s in _statements) {
@@ -36,9 +38,11 @@ class SymbolCollector {
         break;
 
       case BlockStatement block:
-        _current = Environment(_current);
+        Environment env = _current = Environment(_current);
+        int index = _unnamedEnvCount++;
         for (Statement element in block.body) { _statement(element); }
         _current = _current.exit();
+        _current.declare(index.toString(), BlockSymbol(block.blame, index, env, block.body));
         break;
 
       case DeclarationStatement decl:
@@ -54,16 +58,11 @@ class SymbolCollector {
         break;
 
       case IfStatement ifL:
-        _current = Environment(_current);
-        _statement(ifL.ifBranch);
-        if (ifL.elseBranch != null) _statement(ifL.elseBranch!);
-        _current = _current.exit();
+        _if(ifL);
         break;
 
       case WhileStatement whileL:
-        _current = Environment(_current);
-        _statement(whileL.body);
-        _current = _current.exit();
+        _while(whileL);
         break;
 
       default:
@@ -76,10 +75,12 @@ class SymbolCollector {
   }
 
   void _for(ForStatement f) {
-    _current = Environment(_current);
+    Environment env = _current = Environment(_current);
+    int index = _unnamedEnvCount++;
     _declaration(f.initializer);
     _statement(f.body);
     _current = _current.exit();
+    _current.declare(index.toString(), EnvironmentSymbol(f.blame, index, env, f.body));
   }
 
   void _function(FunctionStatement f) {
@@ -96,5 +97,26 @@ class SymbolCollector {
 
     _current = _current.exit();
     _current.declare(f.name.tokenValue, FunctionSymbol(f.name, f.returnType, params, fn, f.body));
+  }
+
+  void _if(IfStatement i) {
+    Environment env = _current = Environment(_current);
+    int index = _unnamedEnvCount++;
+    int elseIndex = _unnamedEnvCount++;
+    _statement(i.ifBranch);
+    if (i.elseBranch != null) _statement(i.elseBranch!);
+    _current = _current.exit();
+    _current.declare(index.toString(), EnvironmentSymbol(i.blame, index, env, i.ifBranch));
+    if (i.elseBranch != null) {
+      _current.declare(elseIndex.toString(), EnvironmentSymbol(i.blame, elseIndex, env, i.elseBranch!));
+    }
+  }
+
+  void _while(WhileStatement w) {
+    Environment env = _current = Environment(_current);
+    int index = _unnamedEnvCount++;
+    _statement(w.body);
+    _current = _current.exit();
+    _current.declare(index.toString(), EnvironmentSymbol(w.blame, index, env, w.body));
   }
 }

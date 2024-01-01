@@ -22,13 +22,109 @@ class NativeVariableSymbol extends NSymbol {
 Map<String, NativeFunctionSymbol> _nativeMethods = {
   "print": NativeFunctionSymbol("print", getTypeF("void"), [
     NativeVariableSymbol("text", getTypeF("dynamic"))
-  ], _nPrint)
+  ], _nPrint),
+  "==": NativeFunctionSymbol("==", getTypeF("bool"), [
+    NativeVariableSymbol("a", getTypeF("dynamic")),
+    NativeVariableSymbol("b", getTypeF("dynamic")),
+  ], equals),
+  "!=": NativeFunctionSymbol("!=", getTypeF("bool"), [
+    NativeVariableSymbol("a", getTypeF("dynamic")),
+    NativeVariableSymbol("b", getTypeF("dynamic")),
+  ], nequals),
+  "<": NativeFunctionSymbol("<", getTypeF("bool"), [
+    NativeVariableSymbol("a", getTypeF("real")),
+    NativeVariableSymbol("b", getTypeF("real")),
+  ], less),
+  "<=": NativeFunctionSymbol("<=", getTypeF("bool"), [
+    NativeVariableSymbol("a", getTypeF("real")),
+    NativeVariableSymbol("b", getTypeF("real")),
+  ], lessEquals),
+  ">": NativeFunctionSymbol(">", getTypeF("bool"), [
+    NativeVariableSymbol("a", getTypeF("real")),
+    NativeVariableSymbol("b", getTypeF("real")),
+  ], greater),
+  ">=": NativeFunctionSymbol(">=", getTypeF("bool"), [
+    NativeVariableSymbol("a", getTypeF("real")),
+    NativeVariableSymbol("b", getTypeF("real")),
+  ], greaterEquals),
+  "&&": NativeFunctionSymbol("&&", getTypeF("bool"), [
+    NativeVariableSymbol("a", getTypeF("bool")),
+    NativeVariableSymbol("b", getTypeF("bool")),
+  ], and),
+  "||": NativeFunctionSymbol("||", getTypeF("bool"), [
+    NativeVariableSymbol("a", getTypeF("bool")),
+    NativeVariableSymbol("b", getTypeF("bool")),
+  ], or),
+  "+": NativeFunctionSymbol("||", getTypeF("real"), [
+    NativeVariableSymbol("a", getTypeF("real")),
+    NativeVariableSymbol("b", getTypeF("real")),
+  ], plus),
+  "-": NativeFunctionSymbol("||", getTypeF("real"), [
+    NativeVariableSymbol("a", getTypeF("real")),
+    NativeVariableSymbol("b", getTypeF("real")),
+  ], minus),
+  "*": NativeFunctionSymbol("||", getTypeF("real"), [
+    NativeVariableSymbol("a", getTypeF("real")),
+    NativeVariableSymbol("b", getTypeF("real")),
+  ], multiply),
+  "/": NativeFunctionSymbol("||", getTypeF("real"), [
+    NativeVariableSymbol("a", getTypeF("real")),
+    NativeVariableSymbol("b", getTypeF("real")),
+  ], divide),
 };
 
 bool existsNativeMethod(String name) => _nativeMethods.containsKey(name);
 
 NativeFunctionSymbol getNativeMethod(String name) => _nativeMethods[name]!;
 
-void _nPrint(List<dynamic> args) {
+dynamic _nPrint(List<dynamic> args) {
   print(args[0]);
+}
+
+dynamic equals(List<dynamic> args) {
+  return args[0] == args[1];
+}
+
+dynamic nequals(List<dynamic> args) {
+  return !equals(args);
+}
+
+dynamic less(List<dynamic> args) {
+  return args[0] < args[1];
+}
+
+dynamic lessEquals(List<dynamic> args) {
+  return args[0] <= args[1];
+}
+
+dynamic greater(List<dynamic> args) {
+  return args[0] > args[1];
+}
+
+dynamic greaterEquals(List<dynamic> args) {
+  return args[0] >= args[1];
+}
+
+dynamic and(List<dynamic> args) {
+  return args[0] && args[1];
+}
+
+dynamic or(List<dynamic> args) {
+  return args[0] || args[1];
+}
+
+dynamic plus(List<dynamic> args) {
+  return args[0] + args[1];
+}
+
+dynamic minus(List<dynamic> args) {
+  return args[0] - args[1];
+}
+
+dynamic multiply(List<dynamic> args) {
+  return args[0] * args[1];
+}
+
+dynamic divide(List<dynamic> args) {
+  return args[0] / args[1];
 }

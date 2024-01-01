@@ -15,6 +15,13 @@ const Map<String, NType> _typeDict = {
   "null": NType(6, 0, true)
 };
 
+bool typesMatchT(NType left, NSymbol right) {
+  if (evaluateType(right).signature == _typeDict["dynamic"]!.signature) {
+    return true;
+  }
+  return left.signature == evaluateType(right).signature;
+}
+
 bool typesMatch(NSymbol left, NSymbol right) {
   if ((evaluateType(left).signature == _typeDict["dynamic"]!.signature) || (evaluateType(right).signature == _typeDict["dynamic"]!.signature)) {
     return true;
@@ -32,6 +39,8 @@ NType evaluateType(NSymbol s) {
       return _evaluateLiteral(literal);
     case NativeVariableSymbol nVar:
       return nVar.type;
+    case NativeFunctionSymbol nFunc:
+      return nFunc.returnType;
     default:
       throw ResolvingException(ResolvingExceptionType.noAssociatedType, s.blame, "No type associated with ${s.blame.lexeme}.");
   }

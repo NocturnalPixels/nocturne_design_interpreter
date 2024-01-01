@@ -79,22 +79,34 @@ class Parser {
       if (_peek().tokenType != TokenType.rParen) {
         do {
           parameters.add(_parseExpression());
-        } while (_peek().tokenType == TokenType.comma);
+          _advance();
+        } while (_previous().tokenType == TokenType.comma);
       }
 
+      _current--;
       _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after call parameters."));
 
       return CallStatement(name, parameters);
     }
     else if (_match([TokenType.plusequal, TokenType.minusequal, TokenType.starequal, TokenType.slashequal])) {
-      Token op = _previous();
+      Token op = switch (_previous().tokenType) {
+        TokenType.plusequal => Token(TokenType.plus, -1, "+", "+"),
+        TokenType.minusequal => Token(TokenType.minus, -1, "-", "-"),
+        TokenType.starequal => Token(TokenType.star, -1, "*", "*"),
+        TokenType.slashequal => Token(TokenType.slash, -1, "/", "/"),
+        _ => throw ParsingException(ParsingExceptionType.floatingIdentifier, _previous(), "Floating identifier.")
+      };
       Expression value = _parseExpression();
 
-      return AssignStatement(name, BinaryExpression(VarExpression(op), VarExpression(name), value));
+      return AssignStatement(name, BinaryExpression(op, VarExpression(name), value));
     }
     else if (_match([TokenType.plusplus, TokenType.minusminus])) {
-      Token op = _previous();
-      return AssignStatement(name, BinaryExpression(VarExpression(op), VarExpression(name), LiteralExpression(op, 1)));
+      Token op = switch (_previous().tokenType) {
+        TokenType.plusplus => Token(TokenType.plus, -1, "+", "+"),
+        TokenType.minusminus => Token(TokenType.minus, -1, "-", "-"),
+        _ => throw ParsingException(ParsingExceptionType.floatingIdentifier, _previous(), "Floating identifier.")
+      };
+      return AssignStatement(name, BinaryExpression(op, VarExpression(name), LiteralExpression(op, 1)));
     }
 
     throw ParsingException(ParsingExceptionType.floatingIdentifier, _previous(), "Floating identifier.");
@@ -110,6 +122,8 @@ class Parser {
   }
 
   BlockStatement _block() {
+    Token blame = _previous();
+
     List<Statement> statements = [];
 
     while (_peek().tokenType != TokenType.rBrace) {
@@ -118,7 +132,7 @@ class Parser {
 
     _advance();
 
-    return BlockStatement(statements);
+    return BlockStatement(statements, blame);
   }
 
   DeclarationStatement _declaration(bool isConstant) {
@@ -144,6 +158,7 @@ class Parser {
     Expression? initializer;
 
     if (_peek().tokenType == TokenType.equal) {
+      _advance();
       initializer = _parseExpression();
     }
 
@@ -151,6 +166,7 @@ class Parser {
   }
 
   ForStatement _for() {
+    Token blame = _previous();
     _consume(TokenType.lParen, ParsingException(ParsingExceptionType.missingOpeningParentheses, _peek(), "Expected '(' after 'for'."));
 
     DeclarationStatement initializer = _declaration(false);
@@ -162,7 +178,7 @@ class Parser {
 
     Statement action = _parseStatement();
 
-    return ForStatement(initializer, condition, accumulator, action);
+    return ForStatement(initializer, condition, accumulator, action, blame);
   }
 
   FunctionStatement _function() {
@@ -175,10 +191,11 @@ class Parser {
     if (_peek().tokenType != TokenType.rParen) {
       do {
         parameters.add(_declaration(true));
-        
-      } while (_peek().tokenType == TokenType.comma);
+        _advance();
+      } while (_previous().tokenType == TokenType.comma);
     }
 
+    _current--;
     _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after function parameters."));
 
     Token? returnType;
@@ -193,6 +210,8 @@ class Parser {
   }
 
   IfStatement _if() {
+    Token blame = _previous();
+
     _consume(TokenType.lParen, ParsingException(ParsingExceptionType.missingOpeningParentheses, _peek(), "Expected '(' after 'if'."));
 
     Expression condition = _parseExpression();
@@ -206,7 +225,7 @@ class Parser {
       elseBranch = _parseStatement();
     }
 
-    return IfStatement(condition, ifBranch, elseBranch);
+    return IfStatement(condition, ifBranch, elseBranch, blame);
   }
 
   ReturnStatement _return() {
@@ -214,6 +233,8 @@ class Parser {
   }
 
   WhileStatement _while() {
+    Token blame = _previous();
+
     _consume(TokenType.lParen, ParsingException(ParsingExceptionType.missingOpeningParentheses, _peek(), "Expected '(' after 'while'."));
 
     Expression condition = _parseExpression();
@@ -222,7 +243,7 @@ class Parser {
 
     Statement action = _parseStatement();
 
-    return WhileStatement(condition, action);
+    return WhileStatement(condition, action, blame);
   }
 
   Expression _parseExpression() {
@@ -235,7 +256,7 @@ class Parser {
     while (_match([TokenType.bangequal, TokenType.equalequal])) {
       Token op = _previous();
       Expression right = _comparison();
-      e = BinaryExpression(VarExpression(op), e, right);
+      e = BinaryExpression(op, e, right);
     }
 
     return e;
@@ -247,7 +268,7 @@ class Parser {
     while (_match([TokenType.less, TokenType.lessequal, TokenType.greater, TokenType.greaterequal])) {
       Token op = _previous();
       Expression right = _binary();
-      e = BinaryExpression(VarExpression(op), e, right);
+      e = BinaryExpression(op, e, right);
     }
 
     return e;
@@ -257,7 +278,7 @@ class Parser {
     Expression e = _term();
 
     while (_peek().tokenType == TokenType.identifier) {
-      Expression op = _parseExpression();
+      Token op = _advance();
       Expression right = _term();
       e = BinaryExpression(op, e, right);
     }
@@ -271,7 +292,7 @@ class Parser {
     while (_match([TokenType.plus, TokenType.minus])) {
       Token op = _previous();
       Expression right = _factor();
-      e = BinaryExpression(VarExpression(op), e, right);
+      e = BinaryExpression(op, e, right);
     }
 
     return e;
@@ -283,7 +304,7 @@ class Parser {
     while (_match([TokenType.star, TokenType.slash])) {
       Token op = _previous();
       Expression right = _unary();
-      e = BinaryExpression(VarExpression(op), e, right);
+      e = BinaryExpression(op, e, right);
     }
 
     return e;
@@ -347,9 +368,11 @@ class Parser {
       if (_peek().tokenType != TokenType.rParen) {
         do {
           params.add(_parseExpression());
-        } while (_peek().tokenType == TokenType.comma);
+          _advance();
+        } while (_previous().tokenType == TokenType.comma);
       }
 
+      _current--;
       _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after call parameters."));
 
       return CallExpression(name, params);

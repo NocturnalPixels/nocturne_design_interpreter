@@ -10,7 +10,8 @@ enum ResolvingExceptionType {
   callTargetIsNotCallable,
   invalidArgumentCount,
   returningOutsideMethod,
-  returningInvalidVoid
+  returningInvalidVoid, 
+  alreadyDefinedSymbol
 }
 
 class ResolvingException implements Exception {

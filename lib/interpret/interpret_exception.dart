@@ -3,7 +3,7 @@ import 'package:nocturne_design/lex/token.dart';
 
 enum InterpretExceptionType {
   noEntryPointFound,
-  undefinedSymbol
+  undefinedSymbol, typeMismatch
 }
 
 class InterpretException implements Exception {
@@ -14,5 +14,5 @@ class InterpretException implements Exception {
   const InterpretException(this._code, this._offender, this._message);
 
   @override
-  String toString() => colorRed("R${_code.index}: \"$_message\" at '${_offender.lexeme}' on ${_offender.line}.");
+  String toString() => colorRed("I${_code.index}: \"$_message\" at '${_offender.lexeme}' on ${_offender.line}.");
 }

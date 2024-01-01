@@ -4,6 +4,7 @@ import 'package:nocturne_design/interpret/native_methods.dart';
 import 'package:nocturne_design/interpret/resolving/resolving_exception.dart';
 import 'package:nocturne_design/interpret/symbols/symbol.dart';
 import 'package:nocturne_design/interpret/typing/type_checker.dart';
+import 'package:nocturne_design/lex/token.dart';
 import 'package:nocturne_design/parse/expression.dart';
 import 'package:nocturne_design/parse/statement.dart';
 
@@ -24,7 +25,9 @@ class Resolver {
 
   FunctionSymbol? _currentFunc;
 
-  Resolver(this._statements, this._current): _currentFunc = null;
+  int _unnamedEnvCount;
+
+  Resolver(this._statements, this._current): _currentFunc = null, _unnamedEnvCount = 0;
 
   void resolve() {
     for (Statement element in _statements) { _statement(element); }
@@ -36,16 +39,34 @@ class Resolver {
         _assign(assign);
         break;
       case BlockStatement block:
+        BlockSymbol s = _current.findF((_unnamedEnvCount++).toString()) as BlockSymbol;
+        _current = s.env;
         for (Statement element in block.body) { _statement(element); }
+        _current = _current.exit();
         break;
       case CallStatement call:
         _call(call);
         break;
+      case DeclarationStatement decl:
+        _declaration(decl);
+        break;
+      case ForStatement forL:
+        _for(forL);
+        break;
       case FunctionStatement function:
         _function(function);
         break;
+      case IfStatement ifL:
+        _if(ifL);
+        break;
       case ReturnStatement ret:
         _return(ret);
+        break;
+      case WhileStatement whileL:
+        _while(whileL);
+        break;
+
+      case BreakStatement _:
         break;
       default:
         throw ResolvingError("Unimplemented statement in resolver ${s.runtimeType}");
@@ -94,6 +115,28 @@ class Resolver {
     throw ResolvingException(ResolvingExceptionType.callTargetIsNotCallable, c.identifier, "Call target is not function.");
   }
 
+  void _declaration(DeclarationStatement d) {
+    VariableSymbol v = _current.find(d.name) as VariableSymbol;
+
+    if (d.initializer != null) {
+      if (!typesMatch(v, _expression(d.initializer!))) {
+        throw ResolvingException(ResolvingExceptionType.typeMismatch, v.blame, "Initializer type does not match declaration.");
+      }
+    }
+  }
+
+  void _for(ForStatement f) {
+    EnvironmentSymbol e = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
+    _current = e.env;
+
+    if (!typesMatchT(getTypeF("bool"), _expression(f.condition))) {
+      throw ResolvingException(ResolvingExceptionType.typeMismatch, f.blame, "For condition does not evaluate to boolean.");
+    }
+
+    _statement(f.body);
+    _current = _current.exit();
+  }
+
   void _function(FunctionStatement f) {
     _currentFunc = _current.find(f.name) as FunctionSymbol;
     _current = _currentFunc!.env;
@@ -101,6 +144,25 @@ class Resolver {
     _statement(f.body);
 
     _currentFunc = null;
+  }
+
+  void _if(IfStatement i) {
+    EnvironmentSymbol ifBranch = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
+    int elseIndex = _unnamedEnvCount++;
+
+    if (!typesMatchT(getTypeF("bool"), _expression(i.condition))) {
+      throw ResolvingException(ResolvingExceptionType.typeMismatch, i.blame, "For condition does not evaluate to boolean.");
+    }
+
+    _current = ifBranch.env;
+    _statement(i.ifBranch);
+    _current = _current.exit();
+    if (i.elseBranch != null) {
+      EnvironmentSymbol elseBranch = _current.findF(elseIndex.toString()) as EnvironmentSymbol;
+      _current = elseBranch.env;
+      _statement(i.elseBranch!);
+      _current = _current.exit();
+    }
   }
 
   void _return(ReturnStatement r) {
@@ -123,16 +185,35 @@ class Resolver {
     }
   }
 
+  void _while(WhileStatement w) {
+    EnvironmentSymbol e = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
+    _current = e.env;
+
+    if (!typesMatchT(getTypeF("bool"), _expression(w.condition))) {
+      throw ResolvingException(ResolvingExceptionType.typeMismatch, w.blame, "For condition does not evaluate to boolean.");
+    }
+
+    _statement(w.body);
+
+    _current = _current.exit();
+  }
+
   NSymbol _expression(Expression e) {
     switch (e) {
       case AssignExpression assign:
         return _assignExpression(assign);
+      case BinaryExpression binary:
+        return _binary(binary);
       case CallExpression call:
         return _callExpression(call);
+      case GroupingExpression group:
+        return _expression(group.expression);
       case LiteralExpression literal:
         return LiteralSymbol(literal.blame, literal.value);
       case VarExpression varL:
         return _current.find(varL.identifier);
+      case UnaryExpression unary:
+        return _unary(unary);
       default:
         throw ResolvingError("Missing implemented expression in resolver ${e.runtimeType}");
     }
@@ -153,6 +234,28 @@ class Resolver {
     return value;
   }
 
+  NSymbol _binary(BinaryExpression b) {
+    NSymbol left = _expression(b.left);
+    NSymbol right = _expression(b.right);
+    NSymbol op = _current.find(b.op);
+
+    if (op is FunctionSymbol) {
+      if (op.params.length != 2) {
+        throw ResolvingException(ResolvingExceptionType.invalidArgumentCount, op.blame, "Inline call requires precisely 2 arguments.");
+      }
+
+      if (!typesMatch(left, op.params[0])) {
+        throw ResolvingException(ResolvingExceptionType.typeMismatch, left.blame, "Type does not match type specified in function signature.");
+      }
+
+      if (!typesMatch(right, op.params[1])) {
+        throw ResolvingException(ResolvingExceptionType.typeMismatch, left.blame, "Type does not match type specified in function signature.");
+      }
+    }
+
+    return op;
+  }
+
   NSymbol _callExpression(CallExpression c) {
     NSymbol s = _current.find(c.identifier);
 
@@ -170,6 +273,23 @@ class Resolver {
       }
     }
 
-    return _current.find(c.identifier);
+    return s;
+  }
+
+  NSymbol _unary(UnaryExpression u) {
+    NSymbol v = _expression(u.right);
+
+    if (u.op.tokenType == TokenType.bang) {
+      if (!typesMatchT(getTypeF("bool"), v)) {
+        throw ResolvingException(ResolvingExceptionType.typeMismatch, u.op, "Not operator requires boolean value.");
+      }
+    }
+    else if (u.op.tokenType == TokenType.minus) {
+      if (!typesMatchT(getTypeF("int"), v) && !typesMatchT(getTypeF("real"), v)) {
+        throw ResolvingException(ResolvingExceptionType.typeMismatch, u.op, "Negation operator requires numeric value.");
+      }
+    }
+
+    return v;
   }
 }

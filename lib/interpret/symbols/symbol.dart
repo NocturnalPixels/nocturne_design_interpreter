@@ -29,3 +29,19 @@ class LiteralSymbol extends NSymbol {
 
   LiteralSymbol(super.blame, this.value);
 }
+
+class EnvironmentSymbol extends NSymbol {
+  final int key;
+  final Environment env;
+  final Statement body;
+
+  EnvironmentSymbol(super.blame, this.key, this.env, this.body);
+}
+
+class BlockSymbol extends NSymbol {
+  final int key;
+  final Environment env;
+  final List<Statement> body;
+
+  BlockSymbol(super.blame, this.key, this.env, this.body);
+}

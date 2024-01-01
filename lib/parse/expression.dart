@@ -12,7 +12,8 @@ class AssignExpression extends Expression {
 }
 
 class BinaryExpression extends Expression {
-  final Expression op, left, right;
+  final Token op;
+  final Expression left, right;
 
   const BinaryExpression(this.op, this.left, this.right);
 }

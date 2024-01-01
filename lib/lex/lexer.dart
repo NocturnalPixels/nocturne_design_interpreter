@@ -78,7 +78,7 @@ class Lexer {
         case '+':
           if (_peek() == "=") {
             _advance();
-            tokens.add(Token(TokenType.plusequal, _line, "+=", null));
+            tokens.add(Token(TokenType.plusequal, _line, "+=", "+="));
             break;
           }
           else if (_peek() == '+') {
@@ -87,12 +87,12 @@ class Lexer {
             break;
           }
 
-          tokens.add(Token(TokenType.plus, _line, "+", null));
+          tokens.add(Token(TokenType.plus, _line, "+", "+"));
           break;
         case '-':
           if (_peek() == "=") {
             _advance();
-            tokens.add(Token(TokenType.minusequal, _line, "-=", null));
+            tokens.add(Token(TokenType.minusequal, _line, "-=", "-="));
             break;
           }
           else if (_peek() == '-') {
@@ -101,16 +101,16 @@ class Lexer {
             break;
           }
 
-          tokens.add(Token(TokenType.minus, _line, "-", null));
+          tokens.add(Token(TokenType.minus, _line, "-", "-"));
           break;
         case '*':
           if (_peek() == "=") {
             _advance();
-            tokens.add(Token(TokenType.starequal, _line, "*=", null));
+            tokens.add(Token(TokenType.starequal, _line, "*=", "*="));
             break;
           }
 
-          tokens.add(Token(TokenType.star, _line, "*", null));
+          tokens.add(Token(TokenType.star, _line, "*", "*"));
           break;
         case '/':
           if (_peek() == "/") {
@@ -132,17 +132,17 @@ class Lexer {
           }
           else if (_peek() == "=") {
             _advance();
-            tokens.add(Token(TokenType.slashequal, _line, "/=", null));
+            tokens.add(Token(TokenType.slashequal, _line, "/=", "/="));
             break;
           }
 
-          tokens.add(Token(TokenType.slash, _line, "/", null));
+          tokens.add(Token(TokenType.slash, _line, "/", "/"));
           break;
 
         case '=':
           if (_peek() == "=") {
             _advance();
-            tokens.add(Token(TokenType.equalequal, _line, "==", null));
+            tokens.add(Token(TokenType.equalequal, _line, "==", "=="));
             break;
           }
 
@@ -151,7 +151,7 @@ class Lexer {
         case '!':
           if (_peek() == "=") {
             _advance();
-            tokens.add(Token(TokenType.bangequal, _line, "!=", null));
+            tokens.add(Token(TokenType.bangequal, _line, "!=", "!="));
             break;
           }
 
@@ -161,27 +161,27 @@ class Lexer {
         case '<':
           if (_peek() == "=") {
             _advance();
-            tokens.add(Token(TokenType.lessequal, _line, "<=", null));
+            tokens.add(Token(TokenType.lessequal, _line, "<=", "<="));
             break;
           }
 
-          tokens.add(Token(TokenType.less, _line, "<", null));
+          tokens.add(Token(TokenType.less, _line, "<", "<"));
           break;
 
         case '>':
           if (_peek() == "=") {
             _advance();
-            tokens.add(Token(TokenType.greaterequal, _line, ">=", null));
+            tokens.add(Token(TokenType.greaterequal, _line, ">=", ">="));
             break;
           }
 
-          tokens.add(Token(TokenType.greater, _line, ">", null));
+          tokens.add(Token(TokenType.greater, _line, ">", ">"));
           break;
         
         case '&':
           if (_peek() == "&") {
             _advance();
-            tokens.add(Token(TokenType.ampamp, _line, "&&", null));
+            tokens.add(Token(TokenType.ampamp, _line, "&&", "&&"));
             break;
           }
 
@@ -190,7 +190,7 @@ class Lexer {
         case '|':
           if (_peek() == "|") {
             _advance();
-            tokens.add(Token(TokenType.pipepipe, _line, "||", null));
+            tokens.add(Token(TokenType.pipepipe, _line, "||", "||"));
             break;
           }
 
@@ -234,6 +234,7 @@ class Lexer {
     }
 
     if (_peek() == '.') {
+      value += _advance();
       isDecimal = true;
       while (_isNumeric(_peek())) {
         value += _advance();
