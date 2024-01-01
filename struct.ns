@@ -6,7 +6,13 @@ struct Test {
     const i: Inner;
 }
 
+mod Test {
+    fn new(i: int) {
+        return Test(Inner(i));
+    }
+}
+
 fn main(args: string[]): void {
-    let t: Test = Test(Inner(5));
+    let t: Test = Test.new(5);
     print(t.i.a);
 }

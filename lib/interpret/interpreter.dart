@@ -73,9 +73,10 @@ class Interpreter {
         break;
       case BlockStatement block:
         BlockSymbol s = _current.findF(block.uid.toString()) as BlockSymbol;
+        Environment returnTo = _current;
         _current = s.env;
         for (Statement element in block.body) {_interpretStatement(element);}
-        _current = _current.exit();
+        _current = returnTo;
         break;
       case BreakStatement _:
         throw BreakException();
@@ -114,7 +115,14 @@ class Interpreter {
   void _accessor(AccessorStatement a) {
     Environment returnTo = _current;
 
-    dynamic left = _expression(a.left);
+    dynamic left;
+
+    if (a.left is VarExpression) {
+      left = _current.get(_current.findF((a.left as VarExpression).identifier.tokenValue + "§impl"));
+    }
+    else {
+      left = _expression(a.left);
+    }
 
     if (left is NInstance) {
       _current = left.env;
@@ -225,15 +233,35 @@ class Interpreter {
   dynamic _accessorExpression(AccessorExpression a) {
     Environment returnTo = _current;
 
-    dynamic left = _expression(a.left);
+    dynamic left;
+
+    if (a.left is VarExpression) {
+      if (typeExists((a.left as VarExpression).identifier.tokenValue)) {
+        left = _current.findF((a.left as VarExpression).identifier.tokenValue + "§impl");
+      }
+      else {
+        left = _expression(a.left);
+      }
+    }
+    else {
+      left = _expression(a.left);
+    }
+
+    dynamic value;
 
     if (left is NInstance) {
       _current = left.env;
 
-      return _expression(a.right);
+      value = _expression(a.right);
+    }
+    else if (left is ModSymbol) {
+      _current = left.env;
+
+      value = _expression(a.right);
     }
 
     _current = returnTo;
+    return value;
   }
 
   dynamic _assignExpression(AssignExpression a) {

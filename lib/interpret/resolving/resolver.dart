@@ -281,6 +281,12 @@ class Resolver {
         }
       }
     }
+    else if (left is ConstructorSymbol) {
+      if (left.type != null) {
+        ModSymbol m = _current.findF(left.type!.tokenValue + "§impl") as ModSymbol;
+        _current = m.env;
+      }
+    }
 
     NSymbol right = _expression(a.right);
 

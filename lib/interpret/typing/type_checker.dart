@@ -105,3 +105,7 @@ NType getTypeF(String s) {
 
   throw ResolvingError("Type $s does not exist.");
 }
+
+bool typeExists(String s) {
+  return _typeDict.containsKey(s);
+}
