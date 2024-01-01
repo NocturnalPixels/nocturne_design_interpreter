@@ -114,6 +114,10 @@ class AstPrinter {
     _write("Increment:");
     _indent++;
     _printStatement(f.increment);
+    _indent--;
+    _write("Body:");
+    _indent++;
+    _printStatement(f.body);
     _indent -= 2;
   }
 
@@ -289,7 +293,7 @@ class AstPrinter {
 
   void _write(String s) {
     for (int i = 0; i < _indent; i++) {
-      stdout.write("  ");
+      stdout.write("|  ");
     }
 
     stdout.write("$s\n");
