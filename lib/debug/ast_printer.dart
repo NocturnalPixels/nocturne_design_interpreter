@@ -113,7 +113,7 @@ class AstPrinter {
     _indent--;
     _write("Increment:");
     _indent++;
-    _printAssign(f.increment);
+    _printStatement(f.increment);
     _indent -= 2;
   }
 

@@ -65,6 +65,48 @@ class Parser {
     return ret;
   }
 
+  Statement _parseStatementNoSemicolon() {
+    Statement ret;
+
+    switch (_advance().tokenType) {
+      case TokenType.lBrace:
+        return _block();
+
+      case TokenType.function:
+        return _function();
+
+      case TokenType.ifL:
+        return _if();
+
+      case TokenType.constL:
+        ret = _declaration(true);
+        break;
+      case TokenType.let:
+        ret = _declaration(false);
+        break;
+
+      case TokenType.breakL:
+        return BreakStatement();
+      case TokenType.whileL:
+        return _while();
+      case TokenType.forL:
+        return _for();
+
+      case TokenType.returnL:
+        ret = _return();
+        break;
+
+      case TokenType.identifier:
+        ret = _identifier();
+        break;
+
+      default:
+        throw ParsingException(ParsingExceptionType.undefinedStatement, _previous(), "Unknown Statement");
+    }
+
+    return ret;
+  }
+
   Statement _identifier() {
     Token name = _previous();
 
@@ -170,10 +212,10 @@ class Parser {
     _consume(TokenType.lParen, ParsingException(ParsingExceptionType.missingOpeningParentheses, _peek(), "Expected '(' after 'for'."));
 
     DeclarationStatement initializer = _declaration(false);
+    _consume(TokenType.semicolon, ParsingException(ParsingExceptionType.missingSemicolon, _peek(), "Expected ';' after for condition."));
     Expression condition = _parseExpression();
     _consume(TokenType.semicolon, ParsingException(ParsingExceptionType.missingSemicolon, _peek(), "Expected ';' after for condition."));
-    _consume(TokenType.identifier, ParsingException(ParsingExceptionType.expectedIdentifier, _peek(), "Expected identifier to start accumulator."));
-    AssignStatement accumulator = _assign();
+    Statement accumulator = _parseStatementNoSemicolon();
     _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after for accumulator."));
 
     Statement action = _parseStatement();
@@ -247,7 +289,19 @@ class Parser {
   }
 
   Expression _parseExpression() {
-    return _equality();
+    return _booleanEquality();
+  }
+
+  Expression _booleanEquality() {
+    Expression e = _equality();
+
+    while (_match([TokenType.ampamp, TokenType.pipepipe])) {
+      Token op = _previous();
+      Expression right = _equality();
+      e = BinaryExpression(op, e, right);
+    }
+
+    return e;
   }
 
   Expression _equality() {

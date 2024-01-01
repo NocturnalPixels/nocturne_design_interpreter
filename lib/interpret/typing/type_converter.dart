@@ -15,3 +15,13 @@ dynamic negate(dynamic v) {
 
   throw InterpretError("Uncaught type mismatch in interpreting.");
 }
+
+dynamic add(dynamic a, dynamic b) {
+  if ((a is int || a is double) && (b is int || b is double)) {
+    return a + b;
+  }
+
+  if (a is String || b is String) {
+    return a.toString() + b.toString();
+  }
+}

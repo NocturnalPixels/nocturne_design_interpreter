@@ -1,6 +1,7 @@
 import 'package:nocturne_design/interpret/symbols/symbol.dart';
 import 'package:nocturne_design/interpret/typing/type.dart';
 import 'package:nocturne_design/interpret/typing/type_checker.dart';
+import 'package:nocturne_design/interpret/typing/type_converter.dart';
 import 'package:nocturne_design/lex/token.dart';
 
 class NativeFunctionSymbol extends NSymbol {
@@ -55,9 +56,9 @@ Map<String, NativeFunctionSymbol> _nativeMethods = {
     NativeVariableSymbol("a", getTypeF("bool")),
     NativeVariableSymbol("b", getTypeF("bool")),
   ], or),
-  "+": NativeFunctionSymbol("||", getTypeF("real"), [
-    NativeVariableSymbol("a", getTypeF("real")),
-    NativeVariableSymbol("b", getTypeF("real")),
+  "+": NativeFunctionSymbol("||", getTypeF("dynamic"), [
+    NativeVariableSymbol("a", getTypeF("dynamic")),
+    NativeVariableSymbol("b", getTypeF("dynamic")),
   ], plus),
   "-": NativeFunctionSymbol("||", getTypeF("real"), [
     NativeVariableSymbol("a", getTypeF("real")),
@@ -71,6 +72,10 @@ Map<String, NativeFunctionSymbol> _nativeMethods = {
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
   ], divide),
+  "%": NativeFunctionSymbol("%", getTypeF("real"), [
+    NativeVariableSymbol("a", getTypeF("real")),
+    NativeVariableSymbol("b", getTypeF("real")),
+  ], modulo)
 };
 
 bool existsNativeMethod(String name) => _nativeMethods.containsKey(name);
@@ -114,7 +119,7 @@ dynamic or(List<dynamic> args) {
 }
 
 dynamic plus(List<dynamic> args) {
-  return args[0] + args[1];
+  return add(args[0], args[1]);
 }
 
 dynamic minus(List<dynamic> args) {
@@ -127,4 +132,8 @@ dynamic multiply(List<dynamic> args) {
 
 dynamic divide(List<dynamic> args) {
   return args[0] / args[1];
+}
+
+dynamic modulo(List<dynamic> args) {
+  return args[0] % args[1];
 }

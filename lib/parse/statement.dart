@@ -48,7 +48,7 @@ class DeclarationStatement extends Statement {
 class ForStatement extends Statement {
   final DeclarationStatement initializer;
   final Expression condition;
-  final AssignStatement increment;
+  final Statement increment;
   final Statement body;
   final Token blame;
 

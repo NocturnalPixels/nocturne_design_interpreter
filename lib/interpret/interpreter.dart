@@ -145,11 +145,10 @@ class Interpreter {
     EnvironmentSymbol e = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
     _current = e.env;
     _decl(f.initializer);
-    _unnamedEnvCount++;
-    while (!_expression(f.condition)) {
-      _unnamedEnvCount--;
+    while (_expression(f.condition)) {
+      _unnamedEnvCount = e.key + 1;
       _interpretStatement(f.body);
-      _assign(f.increment);
+      _interpretStatement(f.increment);
     }
     _current = _current.exit();
   }
@@ -167,19 +166,25 @@ class Interpreter {
       _interpretStatement(ifBranch.body);
       _current = _current.exit();
     }
-    else if (elseBranch != null) {
+    else if (i.ifBranch is BlockStatement) {
+      _unnamedEnvCount++;
+    }
+
+    if (_expression(i.condition) != true && elseBranch != null) {
       _current = elseBranch.env;
       _interpretStatement(elseBranch.body);
       _current = _current.exit();
+    }
+    else if (i.elseBranch is BlockStatement) {
+      _unnamedEnvCount++;
     }
   }
 
   void _while(WhileStatement w) {
     EnvironmentSymbol e = _current.findF((_unnamedEnvCount++).toString()) as EnvironmentSymbol;
     _current = e.env;
-    _unnamedEnvCount++;
     while (_expression(w.condition)) {
-      _unnamedEnvCount--;
+      _unnamedEnvCount = e.key + 1;
       _interpretStatement(w.body);
     }
     _current = _current.exit();

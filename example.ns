@@ -5,10 +5,21 @@ Testing File
 */
 
 fn main(args: string[]): void {
-    let x: real = 0.0;
+    for (i: int = 0; i < 100; i++) {
+        let s: string = "";
 
-    while (x < 5.0) {
-        print(x);
-        x++;
+        if (i % 3 == 0) {
+            s += "Fizz";
+        }
+
+        if (i % 5 == 0) {
+            s += "Buzz";
+        }
+
+        if (i % 3 != 0 && i % 5 != 0) {
+            s += i;
+        }
+
+        print(s);
     }
 }
