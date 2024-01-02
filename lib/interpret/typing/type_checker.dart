@@ -1,4 +1,4 @@
-import 'package:nocturne_design/interpret/native_methods.dart';
+import 'package:nocturne_design/interpret/natives/native_methods.dart';
 import 'package:nocturne_design/interpret/resolving/resolver.dart';
 import 'package:nocturne_design/interpret/resolving/resolving_exception.dart';
 import 'package:nocturne_design/interpret/symbols/symbol.dart';

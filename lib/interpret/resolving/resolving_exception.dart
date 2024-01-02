@@ -13,7 +13,8 @@ enum ResolvingExceptionType {
   returningInvalidVoid, 
   alreadyDefinedSymbol,
   typeOverlap, 
-  misplacedConstructor
+  misplacedConstructor,
+  leftSideOfAccessorWrong
 }
 
 class ResolvingException implements Exception {

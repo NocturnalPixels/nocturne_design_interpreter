@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:nocturne_design/interpret/symbols/symbol.dart';
 import 'package:nocturne_design/interpret/typing/type.dart';
 import 'package:nocturne_design/interpret/typing/type_checker.dart';
@@ -10,24 +12,25 @@ class NativeFunctionSymbol extends NSymbol {
   final List<NativeVariableSymbol> params;
   final Function impl;
 
-  NativeFunctionSymbol(this.name, this.returnType, this.params, this.impl): super(Token(TokenType.identifier, -1, name, null));
+  NativeFunctionSymbol(this.name, this.returnType, this.params, this.impl): super(Token(TokenType.identifier, -1, name, name));
 }
 
 class NativeVariableSymbol extends NSymbol {
   final String name;
   final NType type;
   
-  NativeVariableSymbol(this.name, this.type): super(Token(TokenType.identifier, -1, name, null));
+  NativeVariableSymbol(this.name, this.type): super(Token(TokenType.identifier, -1, name, name));
 }
 
 Map<String, NativeFunctionSymbol> _nativeMethods = {
   "print": NativeFunctionSymbol("print", getTypeF("void"), [
     NativeVariableSymbol("text", getTypeF("dynamic"))
   ], _nPrint),
+  "input": NativeFunctionSymbol("input", getTypeF("string"), [], _readLn),
   "==": NativeFunctionSymbol("==", getTypeF("bool"), [
     NativeVariableSymbol("a", getTypeF("dynamic")),
     NativeVariableSymbol("b", getTypeF("dynamic")),
-  ], equals),
+  ], _equals),
   "!=": NativeFunctionSymbol("!=", getTypeF("bool"), [
     NativeVariableSymbol("a", getTypeF("dynamic")),
     NativeVariableSymbol("b", getTypeF("dynamic")),
@@ -35,105 +38,110 @@ Map<String, NativeFunctionSymbol> _nativeMethods = {
   "<": NativeFunctionSymbol("<", getTypeF("bool"), [
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
-  ], less),
+  ], _less),
   "<=": NativeFunctionSymbol("<=", getTypeF("bool"), [
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
-  ], lessEquals),
+  ], _lessEquals),
   ">": NativeFunctionSymbol(">", getTypeF("bool"), [
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
-  ], greater),
+  ], _greater),
   ">=": NativeFunctionSymbol(">=", getTypeF("bool"), [
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
-  ], greaterEquals),
+  ], _greaterEquals),
   "&&": NativeFunctionSymbol("&&", getTypeF("bool"), [
     NativeVariableSymbol("a", getTypeF("bool")),
     NativeVariableSymbol("b", getTypeF("bool")),
-  ], and),
+  ], _and),
   "||": NativeFunctionSymbol("||", getTypeF("bool"), [
     NativeVariableSymbol("a", getTypeF("bool")),
     NativeVariableSymbol("b", getTypeF("bool")),
-  ], or),
-  "+": NativeFunctionSymbol("||", getTypeF("dynamic"), [
+  ], _or),
+  "+": NativeFunctionSymbol("+", getTypeF("dynamic"), [
     NativeVariableSymbol("a", getTypeF("dynamic")),
     NativeVariableSymbol("b", getTypeF("dynamic")),
-  ], plus),
-  "-": NativeFunctionSymbol("||", getTypeF("real"), [
+  ], _plus),
+  "-": NativeFunctionSymbol("-", getTypeF("real"), [
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
-  ], minus),
-  "*": NativeFunctionSymbol("||", getTypeF("real"), [
+  ], _minus),
+  "*": NativeFunctionSymbol("*", getTypeF("real"), [
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
-  ], multiply),
-  "/": NativeFunctionSymbol("||", getTypeF("real"), [
+  ], _multiply),
+  "/": NativeFunctionSymbol("/", getTypeF("real"), [
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
-  ], divide),
+  ], _divide),
   "%": NativeFunctionSymbol("%", getTypeF("real"), [
     NativeVariableSymbol("a", getTypeF("real")),
     NativeVariableSymbol("b", getTypeF("real")),
-  ], modulo),
+  ], _modulo),
 };
 
 bool existsNativeMethod(String name) => _nativeMethods.containsKey(name);
 
 NativeFunctionSymbol getNativeMethod(String name) => _nativeMethods[name]!;
+Map<String, NativeFunctionSymbol> getNativeMethods() => _nativeMethods;
 
 dynamic _nPrint(List<dynamic> args) {
   print(args[0]);
 }
 
-dynamic equals(List<dynamic> args) {
+dynamic _equals(List<dynamic> args) {
   return args[0] == args[1];
 }
 
 dynamic nequals(List<dynamic> args) {
-  return !equals(args);
+  return !_equals(args);
 }
 
-dynamic less(List<dynamic> args) {
+dynamic _less(List<dynamic> args) {
   return args[0] < args[1];
 }
 
-dynamic lessEquals(List<dynamic> args) {
+dynamic _lessEquals(List<dynamic> args) {
   return args[0] <= args[1];
 }
 
-dynamic greater(List<dynamic> args) {
+dynamic _greater(List<dynamic> args) {
   return args[0] > args[1];
 }
 
-dynamic greaterEquals(List<dynamic> args) {
+dynamic _greaterEquals(List<dynamic> args) {
   return args[0] >= args[1];
 }
 
-dynamic and(List<dynamic> args) {
+dynamic _and(List<dynamic> args) {
   return args[0] && args[1];
 }
 
-dynamic or(List<dynamic> args) {
+dynamic _or(List<dynamic> args) {
   return args[0] || args[1];
 }
 
-dynamic plus(List<dynamic> args) {
+dynamic _plus(List<dynamic> args) {
   return add(args[0], args[1]);
 }
 
-dynamic minus(List<dynamic> args) {
+dynamic _minus(List<dynamic> args) {
   return args[0] - args[1];
 }
 
-dynamic multiply(List<dynamic> args) {
+dynamic _multiply(List<dynamic> args) {
   return args[0] * args[1];
 }
 
-dynamic divide(List<dynamic> args) {
+dynamic _divide(List<dynamic> args) {
   return args[0] / args[1];
 }
 
-dynamic modulo(List<dynamic> args) {
+dynamic _modulo(List<dynamic> args) {
   return args[0] % args[1];
+}
+
+dynamic _readLn(List<dynamic> args) {
+  return stdin.readLineSync() ?? "";
 }

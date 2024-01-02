@@ -1,7 +1,9 @@
 import 'package:nocturne_design/interpret/interpret_exception.dart';
-import 'package:nocturne_design/interpret/native_methods.dart';
+import 'package:nocturne_design/interpret/natives/native_methods.dart';
+import 'package:nocturne_design/interpret/natives/native_types.dart';
 import 'package:nocturne_design/interpret/resolving/resolver.dart';
 import 'package:nocturne_design/interpret/symbols/symbol.dart';
+import 'package:nocturne_design/interpret/typing/type_checker.dart';
 import 'package:nocturne_design/lex/token.dart';
 
 import 'resolving/resolving_exception.dart';
@@ -39,6 +41,10 @@ class Environment {
   NSymbol find(Token key) {
     if (existsNativeMethod(key.tokenValue)) {
       return getNativeMethod(key.tokenValue);
+    }
+
+    if (typeExists(key.tokenValue) && existsNativeType(getTypeF(key.tokenValue))) {
+      return getNativeType(getTypeF(key.tokenValue));
     }
 
     if (_symbols.containsKey(key.tokenValue)) {

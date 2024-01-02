@@ -132,19 +132,20 @@ class Parser {
     else if (_peek().tokenType == TokenType.lParen) {
       _advance();
 
-      List<Expression> parameters = [];
+      List<Expression> params = [];
 
       if (_peek().tokenType != TokenType.rParen) {
         do {
-          parameters.add(_parseExpression());
+          params.add(_parseExpression());
           _advance();
         } while (_previous().tokenType == TokenType.comma);
+
+        _current--;
       }
 
-      _current--;
       _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after call parameters."));
 
-      return CallStatement(name, parameters, _current);
+      return CallStatement(name, params, _current);
     }
     else if (_match([TokenType.plusequal, TokenType.minusequal, TokenType.starequal, TokenType.slashequal])) {
       Token op = switch (_previous().tokenType) {
@@ -286,6 +287,7 @@ class Parser {
     Statement? elseBranch;
 
     if (_peek().tokenType == TokenType.elseL) {
+      _advance();
       elseBranch = _parseStatement();
     }
 
@@ -502,9 +504,10 @@ class Parser {
           params.add(_parseExpression());
           _advance();
         } while (_previous().tokenType == TokenType.comma);
+
+        _current--;
       }
 
-      _current--;
       _consume(TokenType.rParen, ParsingException(ParsingExceptionType.missingClosingParentheses, _peek(), "Expected ')' after call parameters."));
 
       return CallExpression(name, params);

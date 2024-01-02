@@ -1,6 +1,7 @@
 import 'package:enum_flag/enum_flag.dart';
 import 'package:nocturne_design/interpret/environment.dart';
-import 'package:nocturne_design/interpret/native_methods.dart';
+import 'package:nocturne_design/interpret/natives/native_methods.dart';
+import 'package:nocturne_design/interpret/natives/native_types.dart';
 import 'package:nocturne_design/interpret/resolving/resolving_exception.dart';
 import 'package:nocturne_design/interpret/symbols/symbol.dart';
 import 'package:nocturne_design/interpret/typing/type_checker.dart';
@@ -38,9 +39,10 @@ class Resolver {
         break;
       case BlockStatement block:
         BlockSymbol s = _current.findF(block.uid.toString()) as BlockSymbol;
+        Environment env = _current;
         _current = s.env;
         for (Statement element in block.body) { _statement(element); }
-        _current = _current.exit();
+        _current = env;
         break;
       case CallStatement call:
         _call(call);
@@ -94,6 +96,18 @@ class Resolver {
           _current = s.env;
         }
       }
+    }
+    else if (left is ConstructorSymbol) {
+      if (left.type != null) {
+        ModSymbol m = _current.findF(left.type!.tokenValue + "§impl") as ModSymbol;
+        _current = m.env;
+      }
+    }
+    else if (left is NativeTypeSymbol) {
+      _expression(a.right);
+    }
+    else {
+      throw ResolvingException(ResolvingExceptionType.leftSideOfAccessorWrong, left.blame, "Left side of accessor cannot be accessed.");
     }
 
     _expression(a.right);
@@ -286,6 +300,16 @@ class Resolver {
         ModSymbol m = _current.findF(left.type!.tokenValue + "§impl") as ModSymbol;
         _current = m.env;
       }
+    }
+    else if (left is NativeTypeSymbol) {
+      if (a.right is! CallExpression) {
+        throw ResolvingException(ResolvingExceptionType.callTargetIsNotCallable, left.blame, "Type was not followed by call.");
+      }
+
+      return left.methods.firstWhere((element) => element.name == (a.right as CallExpression).identifier.tokenValue);
+    }
+    else {
+      throw ResolvingException(ResolvingExceptionType.leftSideOfAccessorWrong, left.blame, "Left side of accessor cannot be accessed.");
     }
 
     NSymbol right = _expression(a.right);

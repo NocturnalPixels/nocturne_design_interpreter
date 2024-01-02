@@ -1,6 +1,7 @@
 import 'package:nocturne_design/interpret/environment.dart';
 import 'package:nocturne_design/interpret/interpret_exception.dart';
-import 'package:nocturne_design/interpret/native_methods.dart';
+import 'package:nocturne_design/interpret/natives/native_methods.dart';
+import 'package:nocturne_design/interpret/natives/native_types.dart';
 import 'package:nocturne_design/interpret/ninstance.dart';
 import 'package:nocturne_design/interpret/resolving/resolver.dart';
 import 'package:nocturne_design/interpret/symbols/symbol.dart';
@@ -118,7 +119,16 @@ class Interpreter {
     dynamic left;
 
     if (a.left is VarExpression) {
-      left = _current.get(_current.findF((a.left as VarExpression).identifier.tokenValue + "§impl"));
+      if (existsNativeType(getTypeF((a.left as VarExpression).identifier.tokenValue))) {
+        List<dynamic> params = [];
+        for (Expression e in (a.right as CallExpression).arguments) {
+          params.add(_expression(e));
+        }
+        getNativeType(getTypeF((a.left as VarExpression).identifier.tokenValue)).methods.firstWhere((element) => element.name == (a.right as CallExpression).identifier.tokenValue).impl.call(params);
+      }
+      else {
+        left = _current.findF((a.left as VarExpression).identifier.tokenValue + "§impl");
+      }
     }
     else {
       left = _expression(a.left);
@@ -237,7 +247,16 @@ class Interpreter {
 
     if (a.left is VarExpression) {
       if (typeExists((a.left as VarExpression).identifier.tokenValue)) {
-        left = _current.findF((a.left as VarExpression).identifier.tokenValue + "§impl");
+        if (existsNativeType(getTypeF((a.left as VarExpression).identifier.tokenValue))) {
+          List<dynamic> params = [];
+          for (Expression e in (a.right as CallExpression).arguments) {
+            params.add(_expression(e));
+          }
+          return getNativeType(getTypeF((a.left as VarExpression).identifier.tokenValue)).methods.firstWhere((element) => element.name == (a.right as CallExpression).identifier.tokenValue).impl.call(params);
+        }
+        else {
+          left = _current.findF((a.left as VarExpression).identifier.tokenValue + "§impl");
+        }
       }
       else {
         left = _expression(a.left);
@@ -327,6 +346,9 @@ class Interpreter {
         params[s.params[i]] = _expression(c.arguments[i]);
       }
       return NInstance(s.type, evaluateType(s), params, Environment(_current));
+    }
+    else {
+      throw InterpretError("Unimplemented call.");
     }
   }
 

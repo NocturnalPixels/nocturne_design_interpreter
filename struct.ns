@@ -1,18 +1,34 @@
-struct Inner {
-    const a: int;
-}
-
-struct Test {
-    const i: Inner;
-}
-
-mod Test {
-    fn new(i: int) {
-        return Test(Inner(i));
-    }
+struct User {
+    const name: string;
+    const age: int;
+    const gender: int;
 }
 
 fn main(args: string[]): void {
-    let t: Test = Test.new(5);
-    print(t.i.a);
+    print("What is your name?");
+    const name: string = input();
+    print("Age?");
+    const age: int = int.parse(input());
+    print("Gender?");
+    const gender: int = read_gender(input());
+
+    const user: User = User(name, age, gender);
+
+    print(user.name);
+    print(user.age);
+    print(user.gender);
+}
+
+fn read_gender(in: string): int {
+    const MALE = 0;
+    const FEMALE = 1;
+    const NON_BINARY = 2;
+    const NOT_TELLING = 3;
+    const OTHER = 4;
+
+    if (string.lower(in) == "male") return MALE;
+    else if (string.lower(in) == "female") return FEMALE;
+    else if (string.lower(in) == "non binary") return NON_BINARY;
+    else if (string.lower(in) == "not telling") return NOT_TELLING;
+    else return OTHER;
 }
